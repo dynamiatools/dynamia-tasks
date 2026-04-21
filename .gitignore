@@ -1,0 +1,50 @@
+# --- Runtime / package managers (Node + pnpm) ---
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs / caches
+coverage/
+dist/
+out/
+.tmp/
+.cache/
+.turbo/
+.eslintcache
+*.tsbuildinfo
+
+# --- Environment files ---
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# --- IntelliJ IDEA ---
+.idea/*
+!.idea/.gitignore
+!.idea/misc.xml
+!.idea/modules.xml
+!.idea/vcs.xml
+*.iml
+
+# --- Kotlin / Gradle ---
+.gradle/
+**/build/
+
+# --- VS Code / VS Code extension artifacts ---
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.vsix
+.vscode-test/
+
+# --- Project local state ---
+.dynamiatasks/
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+

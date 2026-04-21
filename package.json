@@ -1,0 +1,16 @@
+{
+  "name": "dynamia-tasks",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev:web": "pnpm --filter web dev",
+    "dev:server": "pnpm --filter @dynamia-tasks/server dev",
+    "build:web": "pnpm --filter web build",
+    "build:all": "pnpm -r build",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
+

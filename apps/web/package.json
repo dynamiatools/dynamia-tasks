@@ -1,0 +1,24 @@
+{
+  "name": "web",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "nuxt dev --port 3000",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview"
+  },
+  "dependencies": {
+    "@dynamia-tasks/core": "workspace:*",
+    "@pinia/nuxt": "^0.5.5",
+    "@nuxtjs/tailwindcss": "^6.12.0",
+    "pinia": "^2.1.7"
+  },
+  "devDependencies": {
+    "nuxt": "^3.12.3",
+    "typescript": "^5.4.5",
+    "vue": "^3.4.31",
+    "vue-router": "^4.4.0"
+  }
+}
+

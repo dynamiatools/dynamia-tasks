@@ -1,0 +1,90 @@
+[
+  {
+    "id": "local-a1b2c3d4-0001-0000-0000-000000000001",
+    "connectorId": "local",
+    "title": "Init pnpm monorepo structure",
+    "description": "Create packages/, apps/, workspace yaml, tsconfig base.",
+    "done": true,
+    "module": "setup",
+    "labels": [{ "id": "infra", "name": "infra" }],
+    "priority": "high",
+    "createdAt": "2026-04-21T09:00:00Z",
+    "updatedAt": "2026-04-21T10:00:00Z"
+  },
+  {
+    "id": "local-a1b2c3d4-0002-0000-0000-000000000002",
+    "connectorId": "local",
+    "title": "Implement packages/core types and connector interface",
+    "description": "All types in types.ts, TaskConnector interface in connectors/types.ts.",
+    "done": true,
+    "module": "setup",
+    "labels": [{ "id": "infra", "name": "infra" }],
+    "priority": "high",
+    "createdAt": "2026-04-21T09:05:00Z",
+    "updatedAt": "2026-04-21T10:00:00Z"
+  },
+  {
+    "id": "local-a1b2c3d4-0003-0000-0000-000000000003",
+    "connectorId": "local",
+    "title": "Implement connector-local CRUD",
+    "done": true,
+    "module": "setup",
+    "labels": [{ "id": "infra", "name": "infra" }],
+    "priority": "high",
+    "createdAt": "2026-04-21T09:10:00Z",
+    "updatedAt": "2026-04-21T10:00:00Z"
+  },
+  {
+    "id": "local-a1b2c3d4-0004-0000-0000-000000000004",
+    "connectorId": "local",
+    "title": "[UI] Build workspace checklist view",
+    "description": "Grouped by module, toggleable done state, remove from workspace.",
+    "done": false,
+    "labels": [{ "id": "ui", "name": "ui" }],
+    "priority": "high",
+    "createdAt": "2026-04-21T09:15:00Z",
+    "updatedAt": "2026-04-21T09:15:00Z"
+  },
+  {
+    "id": "local-a1b2c3d4-0005-0000-0000-000000000005",
+    "connectorId": "local",
+    "title": "[UI] Build explorer — sources list + task list with filter",
+    "done": false,
+    "labels": [{ "id": "ui", "name": "ui" }],
+    "priority": "medium",
+    "createdAt": "2026-04-21T09:20:00Z",
+    "updatedAt": "2026-04-21T09:20:00Z"
+  },
+  {
+    "id": "local-a1b2c3d4-0006-0000-0000-000000000006",
+    "connectorId": "local",
+    "title": "[UI] Settings with auto-rendered connector config forms",
+    "done": false,
+    "labels": [{ "id": "ui", "name": "ui" }],
+    "priority": "medium",
+    "createdAt": "2026-04-21T09:25:00Z",
+    "updatedAt": "2026-04-21T09:25:00Z"
+  },
+  {
+    "id": "local-a1b2c3d4-0007-0000-0000-000000000007",
+    "connectorId": "local",
+    "title": "Add offline cache layer to server",
+    "done": false,
+    "module": "server",
+    "priority": "low",
+    "createdAt": "2026-04-21T09:30:00Z",
+    "updatedAt": "2026-04-21T09:30:00Z"
+  },
+  {
+    "id": "local-a1b2c3d4-0008-0000-0000-000000000008",
+    "connectorId": "local",
+    "title": "Implement VS Code extension",
+    "description": "Server startup, webview panel, IDE callback server.",
+    "done": false,
+    "module": "vscode",
+    "priority": "medium",
+    "createdAt": "2026-04-21T09:35:00Z",
+    "updatedAt": "2026-04-21T09:35:00Z"
+  }
+]
+
