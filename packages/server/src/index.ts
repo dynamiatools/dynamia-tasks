@@ -281,6 +281,46 @@ export async function startServer(options: ServerOptions): Promise<void> {
     return resolveWorkspace(projectPath)
   })
 
+  // ── GET /api/proxy/image ─────────────────────────────────────────────────────
+  // Proxies GitHub user-attachment images using the stored GitHub token so the
+  // browser does not need to send credentials directly to GitHub.
+  fastify.get<{ Querystring: { url: string; connectorId?: string } }>('/api/proxy/image', async (req, reply) => {
+    const { url, connectorId = 'github' } = req.query
+    if (!url) return reply.code(400).send({ error: true, message: 'url is required' })
+
+    // Only proxy GitHub URLs to avoid open-proxy abuse
+    if (!/^https:\/\/(.*\.)?github(usercontent)?\.com\//i.test(url) &&
+        !url.startsWith('https://github.com/user-attachments/')) {
+      return reply.code(403).send({ error: true, message: 'Only GitHub URLs can be proxied' })
+    }
+
+    const headers: Record<string, string> = {
+      'User-Agent': 'dynamia-tasks',
+    }
+
+    // Attach auth token if available from the connector config
+    try {
+      const connConfig = await readConfig()
+      const token = (connConfig.connectors[connectorId] as any)?.token
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+    } catch { /* ignore */ }
+
+    const upstream = await fetch(url, { headers })
+    if (!upstream.ok) {
+      return reply.code(upstream.status).send({ error: true, message: `Upstream error: ${upstream.status}` })
+    }
+
+    const contentType = upstream.headers.get('content-type') ?? 'image/png'
+    const buffer = Buffer.from(await upstream.arrayBuffer())
+
+    reply
+      .header('Content-Type', contentType)
+      .header('Cache-Control', 'public, max-age=86400')
+      .send(buffer)
+  })
+
   // ── POST /api/ide/open-file ──────────────────────────────────────────────────
   fastify.post('/api/ide/open-file', async (req) => {
     if (!ideCallbackUrl) return { ok: false, message: 'No IDE callback configured' }
