@@ -59,29 +59,35 @@ async function save() {
 
 <template>
   <div>
-    <p class="text-xs text-gray-400 mb-4">
-      <NuxtLink to="/settings" class="hover:underline">settings</NuxtLink>
-      / {{ connectorId }}
+    <!-- Breadcrumb -->
+    <p class="text-xs text-zinc-600 mb-4 flex items-center gap-1">
+      <NuxtLink to="/settings" class="hover:text-zinc-300 transition-colors">settings</NuxtLink>
+      <span class="text-zinc-700">/</span>
+      <ConnectorIcon :connector-id="connectorId" class="text-zinc-400" />
+      <span class="text-zinc-400 ml-0.5">{{ connectorId }}</span>
     </p>
 
-    <p class="mb-4 text-sm">{{ connector?.icon }} {{ connector?.name }}</p>
+    <p class="mb-5 text-zinc-300 font-medium flex items-center gap-2">
+      <ConnectorIcon :connector-id="connectorId" :size="16" class="text-zinc-300" />
+      {{ connector?.name }}
+    </p>
 
     <!-- Custom connector config component -->
     <component :is="customComponent" v-if="customComponent" />
 
     <!-- Generic fallback form -->
     <template v-else>
-      <div v-if="!schema">loading...</div>
+      <div v-if="!schema" class="text-zinc-500 animate-pulse">loading…</div>
 
       <div v-else>
-        <div v-if="schema.fields.length === 0" class="text-gray-500 text-sm">
+        <div v-if="schema.fields.length === 0" class="text-zinc-500 text-sm">
           no configuration needed.
         </div>
 
         <form v-else @submit.prevent="save" class="space-y-5">
           <template v-for="field in schema.fields" :key="field.key">
             <div>
-              <label class="block text-xs text-gray-500 mb-0.5">
+              <label class="block text-xs text-zinc-500 mb-1">
                 {{ field.label }}{{ field.required ? ' *' : '' }}
               </label>
 
@@ -90,20 +96,20 @@ async function save() {
                 v-model="form[field.key]"
                 :type="field.type"
                 :placeholder="field.placeholder ?? ''"
-                class="w-full border-b border-gray-300 focus:border-black outline-none py-0.5 text-sm font-mono"
+                class="w-full bg-transparent border-b border-zinc-700 focus:border-zinc-400 outline-none py-1 text-sm text-zinc-100 placeholder-zinc-600 font-mono transition-colors"
               />
 
               <textarea
                 v-else-if="field.type === 'multiselect'"
                 v-model="form[field.key]"
                 :placeholder="field.placeholder ?? 'one per line'"
-                class="w-full border border-gray-300 focus:border-black outline-none p-1 text-sm font-mono min-h-16 resize-y"
+                class="w-full bg-zinc-900 border border-zinc-700 focus:border-zinc-500 outline-none p-2 text-sm text-zinc-100 font-mono min-h-16 resize-y rounded transition-colors"
               />
 
               <select
                 v-else-if="field.type === 'select'"
                 v-model="form[field.key]"
-                class="border-b border-gray-300 text-sm font-mono bg-transparent outline-none"
+                class="bg-zinc-900 border-b border-zinc-700 text-sm text-zinc-200 outline-none py-0.5 cursor-pointer"
               >
                 <option v-for="opt in field.options" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
@@ -115,15 +121,17 @@ async function save() {
                 class="mt-1"
               />
 
-              <p v-if="field.helpText" class="text-xs text-gray-400 mt-0.5">{{ field.helpText }}</p>
+              <p v-if="field.helpText" class="text-xs text-zinc-600 mt-1">{{ field.helpText }}</p>
             </div>
           </template>
 
-          <div class="flex gap-3 items-center pt-1">
-            <button type="submit" :disabled="saving" class="text-sm hover:underline">
-              {{ saving ? 'saving...' : 'save' }}
-            </button>
-            <span v-if="saved" class="text-xs text-gray-400">saved.</span>
+          <div class="flex gap-4 items-center pt-1">
+            <button
+              type="submit"
+              :disabled="saving"
+              class="text-sm text-zinc-200 hover:text-white disabled:opacity-30 transition-colors"
+            >{{ saving ? 'saving…' : 'save' }}</button>
+            <span v-if="saved" class="text-xs text-emerald-500">saved ✓</span>
           </div>
         </form>
       </div>

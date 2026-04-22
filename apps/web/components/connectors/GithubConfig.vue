@@ -77,69 +77,68 @@ async function save() {
 </script>
 
 <template>
-  <form @submit.prevent="save" class="space-y-5">
+  <form @submit.prevent="save" class="space-y-6">
 
     <!-- ① Token -->
     <div>
-      <label class="block text-xs text-gray-500 mb-0.5">Personal Access Token *</label>
+      <label class="block text-xs text-zinc-500 mb-1">Personal Access Token *</label>
       <input
         v-model="token"
         type="password"
-        placeholder="ghp_..."
-        class="w-full border-b border-gray-300 focus:border-black outline-none py-0.5 text-sm font-mono"
+        placeholder="ghp_…"
+        class="w-full bg-transparent border-b border-zinc-700 focus:border-zinc-400 outline-none py-1 text-sm text-zinc-100 placeholder-zinc-600 font-mono transition-colors"
       />
-      <p class="text-xs text-gray-400 mt-0.5">GitHub PAT with repo scope</p>
+      <p class="text-xs text-zinc-600 mt-1">GitHub PAT with repo scope</p>
     </div>
 
-    <!-- ② Load repos -->
+    <!-- ② Repositories -->
     <div>
       <div class="flex items-center gap-3 mb-2">
-        <span class="text-xs text-gray-500">Repositories</span>
+        <span class="text-xs text-zinc-500">Repositories</span>
         <button
           type="button"
           @click="loadRepos"
           :disabled="loadingRepos || !token.trim()"
-          class="text-xs text-gray-600 hover:underline disabled:opacity-40"
-        >{{ loadingRepos ? 'loading...' : reposLoaded ? '↺ reload' : 'load →' }}</button>
-        <span v-if="reposError" class="text-xs text-red-500">{{ reposError }}</span>
+          class="text-xs text-zinc-400 hover:text-zinc-200 disabled:opacity-30 transition-colors"
+        >{{ loadingRepos ? 'loading…' : reposLoaded ? '↺ reload' : 'load →' }}</button>
+        <span v-if="reposError" class="text-xs text-red-400">{{ reposError }}</span>
       </div>
 
-      <!-- hint antes de cargar -->
-      <p v-if="!reposLoaded && !loadingRepos" class="text-xs text-gray-400">
-        <template v-if="!token.trim()">ingresa el token para poder cargar repositorios.</template>
-        <template v-else-if="selectedRepos.length === 0">haz click en "load →" para ver los repositorios disponibles.</template>
+      <!-- hint -->
+      <p v-if="!reposLoaded && !loadingRepos" class="text-xs text-zinc-600 leading-relaxed">
+        <template v-if="!token.trim()">Enter your token to load repositories.</template>
+        <template v-else-if="selectedRepos.length === 0">Click "load →" to see available repositories.</template>
         <template v-else>
-          repositorios guardados:
-          <span class="font-mono">{{ selectedRepos.join(', ') }}</span>
-          — haz click en "load →" para cambiar la selección.
+          Saved:
+          <span class="font-mono text-zinc-500">{{ selectedRepos.join(', ') }}</span>
+          — click "load →" to change.
         </template>
       </p>
 
-      <!-- ③ Lista completa de repos agrupados por org -->
+      <!-- Repo list -->
       <div v-if="reposLoaded">
-        <p v-if="availableSources.length === 0" class="text-xs text-gray-400">
-          no se encontraron repositorios para este token.
+        <p v-if="availableSources.length === 0" class="text-xs text-zinc-600">
+          No repositories found for this token.
         </p>
 
         <div v-else>
-          <div class="flex gap-3 mb-2">
-            <button type="button" @click="selectAll" class="text-xs text-gray-400 hover:underline">todos</button>
-            <button type="button" @click="selectNone" class="text-xs text-gray-400 hover:underline">ninguno</button>
-            <span class="text-xs text-gray-400">{{ selectedRepos.length }} / {{ availableSources.length }} seleccionados</span>
+          <div class="flex gap-3 mb-3">
+            <button type="button" @click="selectAll" class="text-xs text-zinc-500 hover:text-zinc-200 transition-colors">all</button>
+            <button type="button" @click="selectNone" class="text-xs text-zinc-500 hover:text-zinc-200 transition-colors">none</button>
+            <span class="text-xs text-zinc-600">{{ selectedRepos.length }} / {{ availableSources.length }}</span>
           </div>
 
-          <div v-for="(repos, group) in groupedSources" :key="group" class="mb-3">
-            <p class="text-xs text-gray-400 mb-1">{{ group }}/</p>
-            <ul class="space-y-0.5 ml-2">
+          <div v-for="(repos, group) in groupedSources" :key="group" class="mb-4">
+            <p class="text-[10px] uppercase tracking-widest text-zinc-600 mb-1.5">{{ group }}</p>
+            <ul class="space-y-1 ml-1">
               <li v-for="src in repos" :key="src.id">
-                <label class="flex items-center gap-2 cursor-pointer text-sm font-mono select-none hover:text-black">
+                <label class="flex items-center gap-2.5 cursor-pointer select-none group">
                   <input
                     type="checkbox"
                     :checked="selectedRepos.includes(src.id)"
                     @change="toggleRepo(src.id)"
-                    class="accent-black"
                   />
-                  {{ src.name }}
+                  <span class="text-sm text-zinc-300 group-hover:text-white transition-colors font-mono">{{ src.name }}</span>
                 </label>
               </li>
             </ul>
@@ -148,14 +147,14 @@ async function save() {
       </div>
     </div>
 
-    <!-- ④ Save -->
-    <div class="flex gap-3 items-center pt-1">
+    <!-- ③ Save -->
+    <div class="flex gap-4 items-center pt-1 border-t border-zinc-800">
       <button
         type="submit"
         :disabled="saving || !token.trim()"
-        class="text-sm hover:underline disabled:opacity-40"
-      >{{ saving ? 'saving...' : 'save' }}</button>
-      <span v-if="saved" class="text-xs text-gray-400">saved ✓</span>
+        class="text-sm text-zinc-200 hover:text-white disabled:opacity-30 transition-colors"
+      >{{ saving ? 'saving…' : 'save' }}</button>
+      <span v-if="saved" class="text-xs text-emerald-500">saved ✓</span>
     </div>
 
   </form>

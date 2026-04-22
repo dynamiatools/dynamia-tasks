@@ -5,17 +5,18 @@ onMounted(() => connectors.load())
 
 <template>
   <div>
-    <p class="text-xs text-gray-400 mb-4">settings</p>
-    <ul>
-      <li v-for="c in connectors.connectors" :key="c.id" class="py-0.5 flex gap-3 items-center">
-        <NuxtLink :to="`/settings/${c.id}`" class="hover:underline">
-          {{ c.icon }} {{ c.name }}
+    <p class="text-[10px] uppercase tracking-widest text-zinc-600 mb-4">settings</p>
+    <ul class="space-y-2">
+      <li v-for="c in connectors.connectors" :key="c.id" class="flex items-center gap-2.5">
+        <ConnectorIcon :connector-id="c.id" class="text-zinc-400 shrink-0" />
+        <NuxtLink :to="`/settings/${c.id}`" class="text-zinc-200 hover:text-white transition-colors">
+          {{ c.name }}
         </NuxtLink>
-        <span class="text-xs" :class="c.configured ? 'text-gray-400' : 'text-yellow-600'">
-          {{ c.configured ? 'configured' : 'not configured' }}
-        </span>
+        <span
+          class="text-xs ml-auto"
+          :class="c.configured ? 'text-emerald-500' : 'text-amber-400'"
+        >{{ c.configured ? 'configured' : 'not configured' }}</span>
       </li>
     </ul>
   </div>
 </template>
-

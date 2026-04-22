@@ -88,93 +88,153 @@ const inWorkspace = computed(() =>
 
 <template>
   <div>
-    <p class="text-xs text-gray-400 mb-4">
-      <NuxtLink to="/" class="hover:underline">workspace</NuxtLink> /
-      {{ connectorId }}
+    <!-- Breadcrumb -->
+    <p class="text-xs text-zinc-600 mb-4 flex items-center gap-1">
+      <NuxtLink to="/" class="hover:text-zinc-300 transition-colors">workspace</NuxtLink>
+      <span class="text-zinc-700">/</span>
+      <ConnectorIcon :connector-id="connectorId" class="text-zinc-500" />
+      <span class="ml-0.5">{{ connectorId }}</span>
     </p>
 
-    <div v-if="loading">loading...</div>
-    <div v-else-if="error" class="text-red-600">{{ error }}</div>
+    <div v-if="loading" class="text-zinc-500 animate-pulse">loading…</div>
+    <div v-else-if="error" class="text-red-400">{{ error }}</div>
 
-    <div v-else-if="task">
+    <div v-else-if="task" class="space-y-5">
       <!-- Title -->
       <div v-if="!editing">
-        <div class="flex items-start gap-2">
-          <button @click="toggleDone" class="mt-0.5 shrink-0">
-            <span v-if="task.done" class="text-gray-400">[x]</span>
-            <span v-else>[ ]</span>
+        <div class="flex items-start gap-3">
+          <button
+            @click="toggleDone"
+            class="mt-1 shrink-0 text-zinc-500 hover:text-zinc-200 transition-colors"
+          >
+            <svg v-if="task.done" width="16" height="16" viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity="0.15"/>
+              <path d="M4.5 7l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg v-else width="16" height="16" viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
           </button>
-          <h1 class="text-base font-semibold leading-snug" :class="task.done ? 'line-through text-gray-400' : ''">
-            {{ task.title }}
-          </h1>
-          <button v-if="task.capabilities?.canEdit" @click="editing = true" class="text-xs text-gray-400 hover:text-black ml-1">edit</button>
+          <div class="flex-1 min-w-0">
+            <h1
+              class="text-base font-semibold leading-snug transition-colors"
+              :class="task.done ? 'text-zinc-600' : 'text-zinc-100'"
+            >{{ task.title }}</h1>
+          </div>
+          <button
+            v-if="task.capabilities?.canEdit"
+            @click="editing = true"
+            class="text-xs text-zinc-600 hover:text-zinc-300 transition-colors mt-1 shrink-0"
+          >edit</button>
         </div>
       </div>
 
       <!-- Edit mode -->
-      <div v-else class="space-y-2">
-        <input v-model="editTitle" class="w-full border-b border-black outline-none font-mono text-base" />
-        <textarea v-model="editDesc" class="w-full border border-gray-300 outline-none font-mono text-sm p-1 min-h-20 resize-y" />
-        <div class="flex gap-2">
-          <button @click="saveEdit" class="text-sm hover:underline">save</button>
-          <button @click="editing = false" class="text-sm text-gray-400 hover:underline">cancel</button>
+      <div v-else class="space-y-3">
+        <input
+          v-model="editTitle"
+          class="w-full bg-transparent border-b border-zinc-600 focus:border-zinc-400 outline-none text-base text-zinc-100 py-1 transition-colors"
+        />
+        <textarea
+          v-model="editDesc"
+          class="w-full bg-zinc-900 border border-zinc-700 focus:border-zinc-500 outline-none text-sm text-zinc-200 p-2 min-h-24 resize-y rounded transition-colors"
+        />
+        <div class="flex gap-3">
+          <button @click="saveEdit" class="text-sm text-zinc-200 hover:text-white transition-colors">save</button>
+          <button @click="editing = false" class="text-sm text-zinc-600 hover:text-zinc-300 transition-colors">cancel</button>
         </div>
       </div>
 
       <!-- Meta -->
-      <div class="mt-3 text-xs text-gray-400 space-y-0.5">
-        <p v-if="task.labels?.length">labels: {{ task.labels.map((l: any) => l.name).join(', ') }}</p>
-        <p v-if="task.priority">priority: {{ task.priority }}</p>
-        <p v-if="task.assignees?.length">assignees: {{ task.assignees.map((a: any) => a.login).join(', ') }}</p>
-        <p v-if="task.author">by: {{ task.author.login }}</p>
-        <p>{{ task.connectorIcon }} {{ task.connectorName }}</p>
+      <div class="text-xs text-zinc-600 space-y-0.5 border-l border-zinc-800 pl-3">
+        <div v-if="task.labels?.length" class="flex items-center gap-1.5 flex-wrap">
+          <LabelBadge v-for="l in task.labels" :key="l.id" :label="l" />
+        </div>
+        <p v-if="task.priority">
+          <span class="text-zinc-700">priority</span>
+          <span class="ml-1.5" :class="task.priority === 'high' ? 'text-red-400' : 'text-zinc-500'">{{ task.priority }}</span>
+        </p>
+        <p v-if="task.assignees?.length">
+          <span class="text-zinc-700">assignees</span>
+          <span class="ml-1.5 text-zinc-500">{{ task.assignees.map((a: any) => a.login).join(', ') }}</span>
+        </p>
+        <p v-if="task.author">
+          <span class="text-zinc-700">author</span>
+          <span class="ml-1.5 text-zinc-500">{{ task.author.login }}</span>
+        </p>
+        <p class="flex items-center gap-1">
+          <ConnectorIcon :connector-id="connectorId" class="text-zinc-700" :size="11" />
+          <span class="text-zinc-700">{{ task.connectorName }}</span>
+        </p>
       </div>
 
       <!-- Description -->
-      <div v-if="task.description && !editing" class="mt-4 text-sm whitespace-pre-wrap text-gray-700">
-        {{ task.description }}
-      </div>
+      <div
+        v-if="task.description && !editing"
+        class="text-sm text-zinc-400 leading-relaxed whitespace-pre-wrap border-t border-zinc-800/60 pt-4"
+      >{{ task.description }}</div>
 
       <!-- Workspace action -->
-      <div class="mt-4">
-        <button v-if="!inWorkspace" @click="workspace.addTask(connectorId, taskId)" class="text-xs hover:underline text-gray-500">
-          + add to workspace
-        </button>
-        <button v-else @click="workspace.removeTask(connectorId, taskId)" class="text-xs hover:underline text-gray-400">
-          × remove from workspace
-        </button>
+      <div class="pt-1">
+        <button
+          v-if="!inWorkspace"
+          @click="workspace.addTask(connectorId, taskId)"
+          class="text-xs text-zinc-600 hover:text-zinc-300 transition-colors"
+        >+ add to workspace</button>
+        <button
+          v-else
+          @click="workspace.removeTask(connectorId, taskId)"
+          class="text-xs text-zinc-600 hover:text-red-400 transition-colors"
+        >× remove from workspace</button>
       </div>
 
       <!-- Subtasks -->
-      <div v-if="task.capabilities?.canSubtasks && subtasks.length > 0" class="mt-6">
-        <p class="text-xs text-gray-400 mb-1">subtasks</p>
-        <ul>
-          <li v-for="sub in subtasks" :key="sub.id" class="flex gap-2 py-0.5 text-sm">
-            <span class="text-gray-300">{{ sub.done ? '[x]' : '[ ]' }}</span>
-            <span :class="sub.done ? 'line-through text-gray-400' : ''">{{ sub.title }}</span>
+      <div v-if="task.capabilities?.canSubtasks && subtasks.length > 0" class="border-t border-zinc-800/60 pt-4">
+        <p class="text-[10px] uppercase tracking-widest text-zinc-600 mb-2">subtasks</p>
+        <ul class="space-y-1.5">
+          <li v-for="sub in subtasks" :key="sub.id" class="flex items-center gap-2.5">
+            <span class="text-zinc-600">
+              <svg v-if="sub.done" width="13" height="13" viewBox="0 0 14 14" fill="none">
+                <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity="0.15"/>
+                <path d="M4.5 7l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <svg v-else width="13" height="13" viewBox="0 0 14 14" fill="none">
+                <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+            </span>
+            <span
+              class="text-sm"
+              :class="sub.done ? 'text-zinc-600' : 'text-zinc-300'"
+            >{{ sub.title }}</span>
           </li>
         </ul>
       </div>
 
       <!-- Comments -->
-      <div v-if="task.capabilities?.canComment" class="mt-6">
-        <p class="text-xs text-gray-400 mb-2">comments</p>
-        <ul class="space-y-3 mb-4">
-          <li v-for="c in comments" :key="c.id" class="text-sm">
-            <span class="text-gray-500">{{ c.author.login }}</span>
-            <span class="text-gray-300 mx-1">·</span>
-            <span class="text-gray-400 text-xs">{{ new Date(c.createdAt).toLocaleDateString() }}</span>
-            <p class="mt-0.5 whitespace-pre-wrap text-gray-700">{{ c.body }}</p>
+      <div v-if="task.capabilities?.canComment" class="border-t border-zinc-800/60 pt-4">
+        <p class="text-[10px] uppercase tracking-widest text-zinc-600 mb-3">comments</p>
+        <ul class="space-y-4 mb-4">
+          <li v-for="c in comments" :key="c.id">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xs text-zinc-400 font-medium">{{ c.author.login }}</span>
+              <span class="text-zinc-700 text-xs">·</span>
+              <span class="text-zinc-600 text-xs">{{ new Date(c.createdAt).toLocaleDateString() }}</span>
+            </div>
+            <p class="text-sm text-zinc-400 whitespace-pre-wrap leading-relaxed">{{ c.body }}</p>
           </li>
         </ul>
-        <div class="flex gap-2">
+        <div class="flex gap-3 items-center">
           <input
             v-model="newComment"
-            placeholder="add comment..."
-            class="flex-1 border-b border-gray-300 focus:border-black outline-none py-0.5 text-sm font-mono"
+            placeholder="add a comment…"
+            class="flex-1 bg-transparent border-b border-zinc-700 focus:border-zinc-400 outline-none py-1 text-sm text-zinc-100 placeholder-zinc-600 transition-colors"
             @keydown.enter.prevent="submitComment"
           />
-          <button @click="submitComment" :disabled="postingComment" class="text-xs hover:underline text-gray-500">send</button>
+          <button
+            @click="submitComment"
+            :disabled="postingComment"
+            class="text-xs text-zinc-500 hover:text-zinc-200 disabled:opacity-30 transition-colors shrink-0"
+          >send</button>
         </div>
       </div>
     </div>

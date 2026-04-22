@@ -12,24 +12,24 @@ onMounted(async () => {
 
 <template>
   <div>
-    <p class="text-xs text-gray-400 mb-1">
-      <NuxtLink to="/explore" class="hover:underline">explore</NuxtLink>
-      / {{ connectorId }}
+    <p class="text-xs text-zinc-600 mb-4">
+      <NuxtLink to="/explore" class="hover:text-zinc-300 transition-colors">explore</NuxtLink>
+      <span class="mx-1 text-zinc-700">/</span>
+      <ConnectorIcon :connector-id="connectorId" class="inline text-zinc-400" />
+      <span class="ml-1">{{ connectorId }}</span>
     </p>
-    <div v-if="explorer.loading">loading sources...</div>
-    <div v-else-if="explorer.sources.length === 0" class="text-gray-500 text-sm mt-4">
-      no sources found.
-    </div>
-    <ul v-else class="mt-4">
-      <li v-for="src in explorer.sources" :key="src.id" class="py-0.5">
+
+    <div v-if="explorer.loading" class="text-zinc-500 animate-pulse">loading…</div>
+    <div v-else-if="explorer.sources.length === 0" class="text-zinc-600 text-sm">no sources found.</div>
+    <ul v-else class="space-y-1">
+      <li v-for="src in explorer.sources" :key="src.id">
         <NuxtLink
           :to="`/explore/${connectorId}/${encodeURIComponent(src.id)}`"
-          class="hover:underline"
+          class="text-zinc-300 hover:text-white transition-colors"
         >
-          <span v-if="src.group" class="text-gray-400">{{ src.group }}/</span>{{ src.name }}
+          <span v-if="src.group" class="text-zinc-600">{{ src.group }}/</span>{{ src.name }}
         </NuxtLink>
       </li>
     </ul>
   </div>
 </template>
-

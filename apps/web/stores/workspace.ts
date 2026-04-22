@@ -14,7 +14,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const api = useApi()
 
   async function load() {
-    loading.value = true
+    // Only show loading spinner on first load (no items yet)
+    if (items.value.length === 0) loading.value = true
     error.value = null
     try {
       const res = await api.get<WorkspaceResponse>('/api/workspace')
@@ -26,26 +27,54 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  async function addTask(connectorId: string, taskId: string) {
-    const res = await api.post<WorkspaceResponse>('/api/workspace/add', { connectorId, taskId })
-    items.value = res.items
+  async function addTask(connectorId: string, taskId: string, optimisticTask?: TaskView) {
+    // Optimistic add if we already have the task data
+    const alreadyIn = items.value.some(t => t.connectorId === connectorId && t.id === taskId)
+    if (optimisticTask && !alreadyIn) {
+      items.value = [...items.value, optimisticTask]
+    }
+
+    try {
+      const res = await api.post<WorkspaceResponse>('/api/workspace/add', { connectorId, taskId })
+      items.value = res.items
+    } catch {
+      // Revert optimistic add
+      if (optimisticTask) {
+        items.value = items.value.filter(t => !(t.connectorId === connectorId && t.id === taskId))
+      }
+    }
   }
 
   async function removeTask(connectorId: string, taskId: string) {
-    const encoded = encodeURIComponent(taskId)
-    const res = await api.delete<WorkspaceResponse>(`/api/workspace/${connectorId}/${encoded}`)
-    items.value = res.items
+    // Optimistic remove
+    const prev = [...items.value]
+    items.value = items.value.filter(t => !(t.connectorId === connectorId && t.id === taskId))
+
+    try {
+      const encoded = encodeURIComponent(taskId)
+      const res = await api.delete<WorkspaceResponse>(`/api/workspace/${connectorId}/${encoded}`)
+      items.value = res.items
+    } catch {
+      items.value = prev
+    }
   }
 
   async function toggleDone(task: TaskView) {
-    const encoded = encodeURIComponent(task.id)
-    const res = await api.patch<{ task: TaskView }>(
-      `/api/connectors/${task.connectorId}/tasks/${encoded}`,
-      { done: !task.done }
-    )
+    // Optimistic update — flip immediately in UI
     const idx = items.value.findIndex(t => t.id === task.id && t.connectorId === task.connectorId)
-    if (idx !== -1) {
-      items.value[idx] = { ...items.value[idx], ...res.task }
+    if (idx !== -1) items.value[idx] = { ...items.value[idx], done: !task.done }
+
+    // Sync with server in background
+    try {
+      const encoded = encodeURIComponent(task.id)
+      const res = await api.patch<{ task: TaskView }>(
+        `/api/connectors/${task.connectorId}/tasks/${encoded}`,
+        { done: !task.done }
+      )
+      if (idx !== -1) items.value[idx] = { ...items.value[idx], ...res.task }
+    } catch {
+      // Revert on error
+      if (idx !== -1) items.value[idx] = { ...items.value[idx], done: task.done }
     }
   }
 
