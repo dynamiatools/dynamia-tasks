@@ -69,7 +69,8 @@ export const useExplorerStore = defineStore('explorer', () => {
     tasks.value = []
     query.value = ''
     status.value = 'open'
+    selectedLabels.value = []
   }
 
-  return { sources, tasks, filteredTasks, loading, query, status, loadSources, loadTasks, reset }
+  return { sources, tasks, filteredTasks, availableLabels, selectedLabels, loading, query, status, loadSources, loadTasks, reset }
 })
