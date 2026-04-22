@@ -115,5 +115,19 @@
     "priority": "medium",
     "createdAt": "2026-04-21T09:35:00Z",
     "updatedAt": "2026-04-22T05:30:17.021Z"
+  },
+  {
+    "id": "local-4a62f269-5744-42e0-9875-aa3d48a1b01d",
+    "connectorId": "local",
+    "title": "Send test task",
+    "done": false,
+    "labels": [
+      {
+        "id": "feat",
+        "name": "feat"
+      }
+    ],
+    "createdAt": "2026-04-22T22:02:38.606Z",
+    "updatedAt": "2026-04-22T22:02:38.606Z"
   }
 ]

@@ -184,8 +184,8 @@ export class GithubConnector implements TaskConnector {
   }
 
   async createTask(newTask: NewTask): Promise<ConnectorTask> {
-    // Requires sourceId (owner/repo) passed as extra field
-    const sourceId = (newTask as any).sourceId as string | undefined
+    // Requires sourceId (owner/repo) passed from the UI
+    const sourceId = newTask.sourceId as string | undefined
     if (!sourceId) throw new Error('createTask requires sourceId (owner/repo)')
     const [owner, repo] = sourceId.split('/')
 
@@ -270,6 +270,15 @@ export class GithubConnector implements TaskConnector {
     await this.gh(`/repos/${owner}/${repo}/issues/${parentNum}/sub_issues/${childNum}`, {
       method: 'DELETE',
     })
+  }
+
+  async fetchLabels(sourceId?: string): Promise<TaskLabel[]> {
+    if (!sourceId) return []
+    const [owner, repo] = sourceId.split('/')
+    const ghLabels = await this.gh<{ id: number; name: string; color: string }[]>(
+      `/repos/${owner}/${repo}/labels?per_page=100`
+    )
+    return ghLabels.map(l => ({ id: String(l.id), name: l.name, color: l.color }))
   }
 
   async fetchSources(): Promise<ConnectorSource[]> {

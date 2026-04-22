@@ -13,11 +13,11 @@ const GITHUB_IMG_RE = /^https:\/\/(.*\.)?github(usercontent)?\.com\//i
 
 /**
  * Returns a proxied URL for GitHub images, original URL otherwise.
- * connectorId defaults to 'github'. apiBase is the server base URL (e.g. http://localhost:3001).
+ * connectorId defaults to 'github'.
  */
-export function proxyImageUrl(src: string, connectorId = 'github', apiBase = ''): string {
+export function proxyImageUrl(src: string, connectorId = 'github'): string {
   if (GITHUB_IMG_RE.test(src) || src.startsWith('https://github.com/user-attachments/')) {
-    return `${apiBase}/api/proxy/image?connectorId=${encodeURIComponent(connectorId)}&url=${encodeURIComponent(src)}`
+    return `/api/proxy/image?connectorId=${encodeURIComponent(connectorId)}&url=${encodeURIComponent(src)}`
   }
   return src
 }
@@ -28,7 +28,7 @@ export function proxyImageUrl(src: string, connectorId = 'github', apiBase = '')
  * - Wraps each <img> with a link that opens the original image in a new tab
  * - Adds target="_blank" + rel="noopener" to existing <a> tags
  */
-export function processHtmlDescription(html: string, connectorId = 'github', apiBase = ''): string {
+export function processHtmlDescription(html: string, connectorId = 'github'): string {
   // Wrap <img> tags with an anchor pointing to the original src
   let result = html.replace(
     /<img(\s[^>]*)?\s*\/?>/gi,
@@ -36,7 +36,7 @@ export function processHtmlDescription(html: string, connectorId = 'github', api
       const srcMatch = imgTag.match(/src=["']([^"']+)["']/i)
       if (!srcMatch) return imgTag
       const originalSrc = srcMatch[1]
-      const proxied = proxyImageUrl(originalSrc, connectorId, apiBase)
+      const proxied = proxyImageUrl(originalSrc, connectorId)
       // Replace src with proxied URL
       const proxiedImg = imgTag.replace(srcMatch[0], `src="${proxied}"`)
       return `<span class="dt-img-wrap" style="display:inline-block;position:relative;">${proxiedImg}<a href="${originalSrc}" target="_blank" rel="noopener" class="dt-img-link" title="Abrir imagen" style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.65);border-radius:3px;padding:2px 5px;font-size:10px;color:#d4d4d4;text-decoration:none;line-height:1.4;">↗</a></span>`

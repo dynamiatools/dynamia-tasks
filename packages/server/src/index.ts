@@ -226,6 +226,14 @@ export async function startServer(options: ServerOptions): Promise<void> {
     }
   )
 
+  // ── GET /api/connectors/:id/labels ──────────────────────────────────────────
+  fastify.get<{ Params: { id: string }; Querystring: { sourceId?: string } }>('/api/connectors/:id/labels', async (req) => {
+    const connector = getConnector(req.params.id)
+    if (typeof (connector as any).fetchLabels !== 'function') return { labels: [] }
+    const labels = await (connector as any).fetchLabels(req.query.sourceId)
+    return { labels }
+  })
+
   // ── GET /api/connectors/:id/sources ─────────────────────────────────────────
   fastify.get<{ Params: { id: string } }>('/api/connectors/:id/sources', async (req, reply) => {
     const connector = getConnector(req.params.id)

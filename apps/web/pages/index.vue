@@ -10,6 +10,22 @@ onMounted(async () => {
 
 <template>
   <div>
+    <!-- Header with New Task button -->
+    <div class="flex items-center justify-between mb-5">
+      <p class="text-xs font-semibold uppercase tracking-widest" style="color:#858585;">Workspace</p>
+      <NuxtLink
+        to="/task/new"
+        class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
+        style="background:#2d2d30; color:#4d9375; border: 1px solid #3e3e42;"
+        onmouseover="this.style.borderColor='#4d9375'; this.style.background='#1e3a2f'"
+        onmouseout="this.style.borderColor='#3e3e42'; this.style.background='#2d2d30'"
+      >
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+          <path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        New Task
+      </NuxtLink>
+    </div>
     <div v-if="workspace.loading" class="flex items-center gap-2 text-sm" style="color: #858585;">
       <svg class="animate-spin" width="14" height="14" viewBox="0 0 14 14" fill="none">
         <circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.5" stroke-dasharray="8 6"/>

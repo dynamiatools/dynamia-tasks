@@ -3,6 +3,7 @@ export const useApi = () => {
   const BASE = useRuntimeConfig().public.apiBase
 
   return {
+    baseUrl: BASE as string,
     get: <T>(path: string) => $fetch<T>(`${BASE}${path}`),
     post: <T>(path: string, body: unknown) =>
       $fetch<T>(`${BASE}${path}`, { method: 'POST', body }),

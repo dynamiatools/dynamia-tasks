@@ -1,6 +1,7 @@
 import type {
   ConnectorTask,
   TaskComment,
+  TaskLabel,
   ConnectorCapabilities,
 } from '../types.js'
 
@@ -18,6 +19,8 @@ export interface NewTask {
   description?: string
   module?: string
   labels?: string[]
+  sourceId?: string
+  priority?: 'high' | 'medium' | 'low'
   [key: string]: unknown
 }
 
@@ -79,5 +82,8 @@ export interface TaskConnector {
 
   // Explorer
   fetchSources?(): Promise<ConnectorSource[]>
+
+  // Labels
+  fetchLabels?(sourceId?: string): Promise<TaskLabel[]>
 }
 

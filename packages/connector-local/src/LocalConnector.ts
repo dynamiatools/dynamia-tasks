@@ -9,6 +9,7 @@ import type {
   TaskFilter,
   TaskPatch,
   NewTask,
+  TaskLabel,
 } from '@dynamia-tasks/core'
 
 export class LocalConnector implements TaskConnector {
@@ -137,7 +138,7 @@ export class LocalConnector implements TaskConnector {
       done: false,
       module: newTask.module,
       labels: newTask.labels?.map(l => ({ id: l, name: l })),
-      priority: (newTask as any).priority,
+      priority: newTask.priority as ConnectorTask['priority'],
       createdAt: now,
       updatedAt: now,
     }
@@ -177,6 +178,17 @@ export class LocalConnector implements TaskConnector {
     const result = await this.findTaskFile(id)
     if (!result) throw Object.assign(new Error(`Task not found: ${id}`), { code: 'TASK_NOT_FOUND' })
     await this.writeFile(result.file, result.tasks.filter(t => t.id !== id))
+  }
+
+  async fetchLabels(_sourceId?: string): Promise<TaskLabel[]> {
+    const tasks = await this.readAllTasks()
+    const map = new Map<string, TaskLabel>()
+    for (const task of tasks) {
+      for (const label of task.labels ?? []) {
+        if (!map.has(label.name)) map.set(label.name, label)
+      }
+    }
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name))
   }
 }
 

@@ -14,14 +14,14 @@ export interface MarkdownAttachment {
   url: string
 }
 
-export function useMarkdownExtract(text: string, connectorId = 'github', apiBase = '') {
+export function useMarkdownExtract(text: string, connectorId = 'github') {
   // Images: ![alt](url)
   const images: MarkdownImage[] = []
   const imageRe = /!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g
   let m: RegExpExecArray | null
   while ((m = imageRe.exec(text)) !== null) {
     const originalUrl = m[2]
-    images.push({ alt: m[1] || 'image', url: proxyImageUrl(originalUrl, connectorId, apiBase), originalUrl })
+    images.push({ alt: m[1] || 'image', url: proxyImageUrl(originalUrl, connectorId), originalUrl })
   }
 
   // File attachments: [name](https://github.com/user-attachments/...) or other non-image links
