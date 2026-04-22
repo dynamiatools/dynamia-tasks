@@ -42,7 +42,7 @@ out/
 .vscode-test/
 
 # --- Project local state ---
-.dynamiatasks/
+.dynamia/
 
 # --- OS files ---
 .DS_Store

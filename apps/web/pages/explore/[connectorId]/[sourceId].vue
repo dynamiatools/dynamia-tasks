@@ -15,7 +15,7 @@ onMounted(async () => {
   await explorer.loadTasks(connectorId, { sourceId })
 })
 
-watch([() => explorer.query, () => explorer.status], async () => {
+watch(() => explorer.status, async () => {
   await explorer.loadTasks(connectorId, { sourceId })
 })
 
@@ -64,9 +64,11 @@ const inWorkspace = (taskId: string) =>
     </div>
 
     <div v-if="explorer.loading" class="text-zinc-500 animate-pulse">loading…</div>
-    <div v-else-if="explorer.tasks.length === 0" class="text-zinc-600">no tasks found.</div>
+    <div v-else-if="explorer.filteredTasks.length === 0" class="text-zinc-600">
+      {{ explorer.query ? 'no tasks match your search.' : 'no tasks found.' }}
+    </div>
     <ul v-else class="space-y-2.5">
-      <li v-for="task in explorer.tasks" :key="task.id" class="flex items-start gap-2.5">
+      <li v-for="task in explorer.filteredTasks" :key="task.id" class="flex items-start gap-2.5">
         <!-- status indicator -->
         <span class="mt-0.5 shrink-0 text-zinc-600">
           <svg v-if="task.done" width="13" height="13" viewBox="0 0 14 14" fill="none">

@@ -4,7 +4,7 @@ import type { Workspace, WorkspaceItem, TaskView } from '@dynamia-tasks/core'
 import { getConnector } from './connectors/registry.js'
 
 export async function readWorkspace(projectPath: string): Promise<Workspace> {
-  const file = path.join(projectPath, '.dynamiatasks', 'workspace.json')
+  const file = path.join(projectPath, '.dynamia', 'tasks', 'workspace.json')
   try {
     const raw = await fs.readFile(file, 'utf-8')
     return JSON.parse(raw) as Workspace
@@ -14,7 +14,7 @@ export async function readWorkspace(projectPath: string): Promise<Workspace> {
 }
 
 export async function writeWorkspace(ws: Workspace): Promise<void> {
-  const dir = path.join(ws.projectPath, '.dynamiatasks')
+  const dir = path.join(ws.projectPath, '.dynamia', 'tasks')
   await fs.mkdir(dir, { recursive: true })
   await fs.writeFile(path.join(dir, 'workspace.json'), JSON.stringify(ws, null, 2), 'utf-8')
 }

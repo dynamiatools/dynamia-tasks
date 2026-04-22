@@ -2,9 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Base dark background ──────────────────────────────────────────────────── */
+/* ── VS Code / IntelliJ-inspired dark palette ─────────────────────────────── */
+:root {
+  --bg-base:    #1e1e1e;   /* VS Code editor background */
+  --bg-surface: #252526;   /* VS Code sidebar / nav */
+  --bg-raised:  #2d2d30;   /* VS Code input / panel */
+  --border:     #3e3e42;   /* VS Code panel border */
+  --text-base:  #d4d4d4;   /* VS Code default text */
+  --text-muted: #858585;   /* VS Code comments / hints */
+  --text-dim:   #6a6a6a;   /* VS Code breadcrumbs */
+}
+
 html, body {
-  @apply bg-zinc-950 text-zinc-100 font-sans antialiased;
+  background-color: var(--bg-base);
+  color: var(--text-base);
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* ── Custom checkboxes ─────────────────────────────────────────────────────── */
@@ -15,20 +28,20 @@ input[type="checkbox"] {
   height: 14px;
   min-width: 14px;
   border-radius: 3px;
-  border: 1.5px solid #3f3f46; /* zinc-700 */
-  background-color: #18181b; /* zinc-900 */
+  border: 1.5px solid var(--border);
+  background-color: var(--bg-raised);
   cursor: pointer;
   position: relative;
   transition: background-color 0.1s, border-color 0.1s;
 }
 
 input[type="checkbox"]:hover {
-  border-color: #71717a; /* zinc-500 */
+  border-color: #6a6a6a;
 }
 
 input[type="checkbox"]:checked {
-  background-color: #a1a1aa; /* zinc-400 */
-  border-color: #a1a1aa;
+  background-color: #4d9375; /* VS Code-style teal accent */
+  border-color: #4d9375;
 }
 
 input[type="checkbox"]:checked::after {
@@ -38,14 +51,19 @@ input[type="checkbox"]:checked::after {
   top: 0.5px;
   width: 5px;
   height: 9px;
-  border: 2px solid #09090b; /* zinc-950 */
+  border: 2px solid #1e1e1e;
   border-top: none;
   border-left: none;
   transform: rotate(45deg);
 }
 
+/* ── Select options (dark bg) ──────────────────────────────────────────────── */
+select option {
+  background-color: var(--bg-raised);
+  color: var(--text-base);
+}
+
 /* ── Scrollbar ─────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 2px; }
-
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
