@@ -14,7 +14,6 @@ import type {
 
 interface GithubConfig {
   token?: string
-  orgs?: string[]
   repos?: string[]
 }
 
@@ -85,20 +84,6 @@ export class GithubConnector implements TaskConnector {
           placeholder: 'ghp_...',
           helpText: 'GitHub PAT with repo scope',
         },
-        {
-          key: 'orgs',
-          label: 'Organizations',
-          type: 'multiselect',
-          required: false,
-          helpText: 'GitHub orgs to browse',
-        },
-        {
-          key: 'repos',
-          label: 'Repositories',
-          type: 'multiselect',
-          required: false,
-          helpText: 'Specific repos (owner/repo)',
-        },
       ],
     }
   }
@@ -166,7 +151,10 @@ export class GithubConnector implements TaskConnector {
   async fetchTasks(filter?: TaskFilter): Promise<ConnectorTask[]> {
     if (!this.config.token) return []
 
-    const repos = await this.resolveRepos()
+    let repos = await this.resolveRepos()
+    if (filter?.sourceId) {
+      repos = repos.filter(r => `${r.owner}/${r.repo}` === filter.sourceId)
+    }
     const status = filter?.status ?? 'open'
     const state = status === 'all' ? 'all' : status === 'closed' ? 'closed' : 'open'
     const perPage = filter?.perPage ?? 50
@@ -286,30 +274,58 @@ export class GithubConnector implements TaskConnector {
 
   async fetchSources(): Promise<ConnectorSource[]> {
     if (!this.config.token) return []
+    // If the user has selected specific repos, return only those
+    if (this.config.repos?.length) {
+      return this.config.repos.map(full => {
+        const [owner, name] = full.split('/')
+        return { id: full, name, group: owner }
+      })
+    }
+    return this.fetchSourcesWithToken(this.config.token)
+  }
+
+  /** Fetch repos/sources using an arbitrary token — used by the settings UI before saving */
+  async fetchSourcesWithToken(token: string, orgs: string[] = []): Promise<ConnectorSource[]> {
+    const ghWithToken = async <T>(path: string): Promise<T> => {
+      const res = await fetch(`https://api.github.com${path}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'X-GitHub-Api-Version': '2022-11-28',
+          Accept: 'application/vnd.github+json',
+        },
+      })
+      if (res.status === 401) throw Object.assign(new Error('GitHub auth failed'), { code: 'UPSTREAM_AUTH_FAILED' })
+      if (res.status === 403) throw Object.assign(new Error('GitHub rate limited'), { code: 'UPSTREAM_RATE_LIMITED' })
+      if (!res.ok) throw new Error(`GitHub API error: ${res.status}`)
+      return res.json() as Promise<T>
+    }
+
+    const fetchAllPages = async (baseUrl: string): Promise<GhRepo[]> => {
+      const all: GhRepo[] = []
+      let page = 1
+      while (true) {
+        const sep = baseUrl.includes('?') ? '&' : '?'
+        const batch = await ghWithToken<GhRepo[]>(`${baseUrl}${sep}per_page=100&page=${page}`)
+        all.push(...batch)
+        if (batch.length < 100) break
+        page++
+      }
+      return all
+    }
 
     const sources: ConnectorSource[] = []
 
-    if (this.config.repos?.length) {
-      for (const full of this.config.repos) {
-        const [owner, name] = full.split('/')
-        sources.push({ id: full, name, group: owner })
+    if (orgs.length > 0) {
+      for (const org of orgs) {
+        try {
+          const repos = await fetchAllPages(`/orgs/${org}/repos?sort=updated`)
+          repos.forEach(r => sources.push({ id: r.full_name, name: r.name, group: org }))
+        } catch {
+          console.warn(`[connector-github] fetchSourcesWithToken failed for org ${org}`)
+        }
       }
-      return sources
-    }
-
-    // fetch from orgs + user repos
-    const orgs = this.config.orgs ?? []
-    for (const org of orgs) {
-      try {
-        const repos = await this.gh<GhRepo[]>(`/orgs/${org}/repos?per_page=100&sort=updated`)
-        repos.forEach(r => sources.push({ id: r.full_name, name: r.name, group: org }))
-      } catch (e) {
-        console.warn(`[connector-github] fetchSources failed for org ${org}`)
-      }
-    }
-
-    if (orgs.length === 0) {
-      const repos = await this.gh<GhRepo[]>('/user/repos?per_page=100&sort=updated&affiliation=owner,collaborator')
+    } else {
+      const repos = await fetchAllPages('/user/repos?sort=updated&affiliation=owner,collaborator,organization_member')
       repos.forEach(r => sources.push({ id: r.full_name, name: r.name, group: r.owner.login }))
     }
 

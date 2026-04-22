@@ -236,6 +236,23 @@ export async function startServer(options: ServerOptions): Promise<void> {
     return { sources }
   })
 
+  // ── POST /api/connectors/:id/probe-sources ───────────────────────────────────
+  // Fetch sources using a provisional config (e.g. token not yet saved) — used by Settings UI
+  fastify.post<{ Params: { id: string } }>('/api/connectors/:id/probe-sources', async (req, reply) => {
+    const connector = getConnector(req.params.id)
+    if (!connector.capabilities.hasExplorer) {
+      return reply.code(405).send({ error: true, code: 'CAPABILITY_NOT_SUPPORTED' })
+    }
+    // GithubConnector exposes fetchSourcesWithToken
+    const c = connector as any
+    if (typeof c.fetchSourcesWithToken === 'function') {
+      const { token, orgs } = req.body as any
+      const sources = await c.fetchSourcesWithToken(token, orgs ?? [])
+      return { sources }
+    }
+    return reply.code(405).send({ error: true, code: 'CAPABILITY_NOT_SUPPORTED' })
+  })
+
   // ── GET /api/workspace ───────────────────────────────────────────────────────
   fastify.get('/api/workspace', async () => {
     return resolveWorkspace(projectPath)
