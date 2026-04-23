@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { TaskView } from '@dynamia-tasks/core'
+import { useExplorerStore } from '~/stores/explorer'
 import {
   ArrowTopRightOnSquareIcon,
   UserIcon,
@@ -15,12 +16,14 @@ const fromWorkspace = computed(() => route.query.from === 'workspace')
 
 const api = useApi()
 const workspace = useWorkspaceStore()
+const explorer = useExplorerStore()
 
 const task = ref<TaskView | null>(null)
 const comments = ref<any[]>([])
 const subtasks = ref<any[]>([])
 const availableLabels = ref<{ id: string; name: string; color?: string }[]>([])
 const loading = ref(true)
+const refreshing = ref(false)
 const error = ref<string | null>(null)
 const newComment = ref('')
 const postingComment = ref(false)
@@ -30,13 +33,38 @@ const editDesc = ref('')
 const editLabels = ref<string[]>([])
 const lightboxImg = ref<string | null>(null)
 
+// Try to find pre-cached task data from workspace or explorer stores
+function findCachedTask(): TaskView | null {
+  const fromWs = workspace.items.find(t => t.connectorId === connectorId && t.id === taskId)
+  if (fromWs) return fromWs
+  const fromEx = explorer.tasks.find(t => t.connectorId === connectorId && t.id === taskId)
+  if (fromEx) return fromEx as unknown as TaskView
+  return null
+}
+
 onMounted(async () => {
+  // Pre-populate immediately from store data (synchronous) to avoid blank screen
+  const cached = findCachedTask()
+  if (cached) {
+    task.value = cached
+    editTitle.value = cached.title
+    editDesc.value = cached.description ?? ''
+    editLabels.value = cached.labels?.map(l => l.name) ?? []
+    loading.value = false
+  }
+
+  // Load workspace and full task data in background
   await workspace.load()
   await loadTask()
 })
 
 async function loadTask() {
-  loading.value = true
+  // Only show full spinner if we have no pre-cached data
+  if (!task.value) {
+    loading.value = true
+  } else {
+    refreshing.value = true
+  }
   error.value = null
   try {
     const res = await api.get<{ task: TaskView }>(`/api/connectors/${connectorId}/tasks/${encodeURIComponent(taskId)}`)
@@ -62,6 +90,7 @@ async function loadTask() {
     error.value = e.message
   } finally {
     loading.value = false
+    refreshing.value = false
   }
 }
 
@@ -167,6 +196,16 @@ function formatDate(iso: string) {
     <p v-else-if="error" class="text-sm text-dt-danger">{{ error }}</p>
 
     <div v-else-if="task" class="space-y-5">
+      <!-- Floating refresh indicator (top-right, doesn't push content) -->
+      <Transition name="fade">
+        <div
+          v-if="refreshing"
+          class="fixed top-[48px] right-4 z-40 flex items-center gap-1.5 px-2 py-1 rounded-md bg-dt-raised border border-dt-border text-xs text-dt-dim shadow-sm opacity-80"
+        >
+          <AppSpinner size="size-3" label="" />
+          <span>updating…</span>
+        </div>
+      </Transition>
 
       <!-- ── Title ── -->
       <div v-if="!editing">
@@ -413,3 +452,7 @@ function formatDate(iso: string) {
   </div>
 </template>
 
+<style scoped>
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+</style>
