@@ -86,7 +86,7 @@ onMounted(async () => {
 
             <div class="flex-1 min-w-0">
               <NuxtLink
-                :to="`/task/${task.connectorId}/${encodeURIComponent(task.id)}`"
+                :to="`/task/${task.connectorId}/${encodeURIComponent(task.id)}?from=workspace`"
                 class="hover:text-white transition-colors leading-snug"
                 :class="task.done ? 'text-dt-dim' : 'text-dt-text'"
               >{{ task.title }}</NuxtLink>

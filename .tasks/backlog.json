@@ -129,5 +129,25 @@
     ],
     "createdAt": "2026-04-22T22:02:38.606Z",
     "updatedAt": "2026-04-22T22:02:38.606Z"
+  },
+  {
+    "id": "local-ad6ed162-2160-449f-a2a7-e5159e8d525e",
+    "connectorId": "local",
+    "title": "Send comments",
+    "description": "should work with send",
+    "done": true,
+    "labels": [
+      {
+        "id": "infra",
+        "name": "infra"
+      },
+      {
+        "id": "feat",
+        "name": "feat"
+      }
+    ],
+    "priority": "medium",
+    "createdAt": "2026-04-23T20:11:54.951Z",
+    "updatedAt": "2026-04-23T20:27:03.946Z"
   }
 ]

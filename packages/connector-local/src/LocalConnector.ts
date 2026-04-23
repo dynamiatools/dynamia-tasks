@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
+import { spawnSync } from 'node:child_process'
 import type {
   TaskConnector,
   ConnectorTask,
@@ -10,6 +11,7 @@ import type {
   TaskPatch,
   NewTask,
   TaskLabel,
+  TaskComment,
 } from '@dynamia-tasks/core'
 
 export class LocalConnector implements TaskConnector {
@@ -20,11 +22,11 @@ export class LocalConnector implements TaskConnector {
     canCreate: true,
     canDelete: true,
     canEdit: true,
-    canComment: false,
+    canComment: true,
     canSubtasks: false,
     canAssign: false,
     canLabel: true,
-    hasDetail: false,
+    hasDetail: true,
     hasExplorer: false,
   }
 
@@ -36,6 +38,10 @@ export class LocalConnector implements TaskConnector {
 
   private get tasksDir() {
     return path.join(this.projectPath, '.tasks')
+  }
+
+  private get commentsFile() {
+    return path.join(this.tasksDir, 'comments.json')
   }
 
   async isConfigured(): Promise<boolean> {
@@ -60,7 +66,7 @@ export class LocalConnector implements TaskConnector {
     }
 
     const tasks: ConnectorTask[] = []
-    for (const file of files.filter(f => f.endsWith('.json'))) {
+    for (const file of files.filter(f => f.endsWith('.json') && f !== 'comments.json')) {
       const filePath = path.join(this.tasksDir, file)
       try {
         const raw = await fs.readFile(filePath, 'utf-8')
@@ -82,6 +88,20 @@ export class LocalConnector implements TaskConnector {
     )
   }
 
+  private async readComments(): Promise<Record<string, TaskComment[]>> {
+    try {
+      const raw = await fs.readFile(this.commentsFile, 'utf-8')
+      return JSON.parse(raw)
+    } catch {
+      return {}
+    }
+  }
+
+  private async writeComments(data: Record<string, TaskComment[]>): Promise<void> {
+    await fs.mkdir(this.tasksDir, { recursive: true })
+    await fs.writeFile(this.commentsFile, JSON.stringify(data, null, 2), 'utf-8')
+  }
+
   // Find which file contains a given task id
   private async findTaskFile(id: string): Promise<{ file: string; tasks: ConnectorTask[] } | null> {
     let files: string[] = []
@@ -90,7 +110,7 @@ export class LocalConnector implements TaskConnector {
     } catch {
       return null
     }
-    for (const file of files.filter(f => f.endsWith('.json'))) {
+    for (const file of files.filter(f => f.endsWith('.json') && f !== 'comments.json')) {
       try {
         const raw = await fs.readFile(path.join(this.tasksDir, file), 'utf-8')
         const arr = JSON.parse(raw) as ConnectorTask[]
@@ -190,6 +210,44 @@ export class LocalConnector implements TaskConnector {
     }
     return [...map.values()].sort((a, b) => a.name.localeCompare(b.name))
   }
+
+  private resolveAuthor(): string {
+    // 1. Try git config user.name in projectPath
+    try {
+      const result = spawnSync('git', ['config', 'user.name'], {
+        cwd: this.projectPath,
+        encoding: 'utf-8',
+        timeout: 2000,
+      })
+      const name = result.stdout?.trim()
+      if (name) return name
+    } catch { /* not a git repo */ }
+
+    // 2. Try system user env vars
+    const envUser = process.env.USER ?? process.env.USERNAME
+    if (envUser) return envUser
+
+    // 3. Fallback
+    return 'local'
+  }
+
+  async fetchComments(taskId: string): Promise<TaskComment[]> {
+    const all = await this.readComments()
+    return all[taskId] ?? []
+  }
+
+  async addComment(taskId: string, body: string): Promise<TaskComment> {
+    const all = await this.readComments()
+    const now = new Date().toISOString()
+    const comment: TaskComment = {
+      id: randomUUID(),
+      body,
+      author: { id: 'local', login: this.resolveAuthor() },
+      createdAt: now,
+      updatedAt: now,
+    }
+    all[taskId] = [...(all[taskId] ?? []), comment]
+    await this.writeComments(all)
+    return comment
+  }
 }
-
-

@@ -139,7 +139,13 @@ export async function startServer(options: ServerOptions): Promise<void> {
   fastify.get<{ Params: { id: string; taskId: string } }>('/api/connectors/:id/tasks/:taskId', async (req) => {
     const connector = getConnector(req.params.id)
     const task = await connector.getTask(decodeURIComponent(req.params.taskId))
-    return { task }
+    const taskView = {
+      ...task,
+      connectorName: connector.name,
+      connectorIcon: connector.icon,
+      capabilities: connector.capabilities,
+    }
+    return { task: taskView }
   })
 
   // ── POST /api/connectors/:id/tasks ───────────────────────────────────────────
@@ -156,7 +162,14 @@ export async function startServer(options: ServerOptions): Promise<void> {
   fastify.patch<{ Params: { id: string; taskId: string } }>('/api/connectors/:id/tasks/:taskId', async (req) => {
     const connector = getConnector(req.params.id)
     const task = await connector.updateTask(decodeURIComponent(req.params.taskId), req.body as any)
-    return { task }
+    return {
+      task: {
+        ...task,
+        connectorName: connector.name,
+        connectorIcon: connector.icon,
+        capabilities: connector.capabilities,
+      }
+    }
   })
 
   // ── DELETE /api/connectors/:id/tasks/:taskId ─────────────────────────────────

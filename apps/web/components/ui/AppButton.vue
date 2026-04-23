@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ArrowPathIcon } from '@heroicons/vue/20/solid'
 
-type Variant = 'primary' | 'ghost' | 'accent-outline' | 'danger' | 'link'
+type Variant = 'primary' | 'ghost' | 'accent' | 'accent-outline' | 'danger' | 'link'
 type Size = 'xs' | 'sm' | 'md'
 
 const props = withDefaults(defineProps<{
@@ -29,6 +29,8 @@ const variantClass: Record<Variant, string> = {
     'bg-dt-accent text-white border-dt-accent hover:opacity-90',
   ghost:
     'bg-dt-raised text-dt-text border-dt-border hover:border-dt-accent hover:bg-dt-accent-deep hover:text-dt-accent',
+  accent:
+    'bg-dt-accent text-white border-dt-accent hover:opacity-90',
   'accent-outline':
     'bg-dt-raised text-dt-accent border-dt-border hover:border-dt-accent hover:bg-dt-accent-deep',
   danger:

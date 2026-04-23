@@ -11,6 +11,7 @@ import {
 const route = useRoute()
 const connectorId = route.params.connectorId as string
 const taskId = decodeURIComponent(route.params.taskId as string)
+const fromWorkspace = computed(() => route.query.from === 'workspace')
 
 const api = useApi()
 const workspace = useWorkspaceStore()
@@ -18,6 +19,7 @@ const workspace = useWorkspaceStore()
 const task = ref<TaskView | null>(null)
 const comments = ref<any[]>([])
 const subtasks = ref<any[]>([])
+const availableLabels = ref<{ id: string; name: string; color?: string }[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 const newComment = ref('')
@@ -25,6 +27,7 @@ const postingComment = ref(false)
 const editing = ref(false)
 const editTitle = ref('')
 const editDesc = ref('')
+const editLabels = ref<string[]>([])
 const lightboxImg = ref<string | null>(null)
 
 onMounted(async () => {
@@ -40,6 +43,7 @@ async function loadTask() {
     task.value = res.task
     editTitle.value = res.task.title
     editDesc.value = res.task.description ?? ''
+    editLabels.value = res.task.labels?.map(l => l.name) ?? []
     if (res.task.capabilities?.canComment) {
       const cr = await api.get<{ comments: any[] }>(`/api/connectors/${connectorId}/tasks/${encodeURIComponent(taskId)}/comments`)
       comments.value = cr.comments
@@ -47,6 +51,12 @@ async function loadTask() {
     if (res.task.capabilities?.canSubtasks) {
       const sr = await api.get<{ subtasks: any[] }>(`/api/connectors/${connectorId}/tasks/${encodeURIComponent(taskId)}/subtasks`)
       subtasks.value = sr.subtasks
+    }
+    if (res.task.capabilities?.canLabel) {
+      try {
+        const lr = await api.get<{ labels: any[] }>(`/api/connectors/${connectorId}/labels${res.task.sourceId ? `?sourceId=${encodeURIComponent(res.task.sourceId)}` : ''}`)
+        availableLabels.value = lr.labels
+      } catch { /* labels not critical */ }
     }
   } catch (e: any) {
     error.value = e.message
@@ -68,14 +78,14 @@ async function saveEdit() {
   if (!task.value) return
   const res = await api.patch<{ task: TaskView }>(
     `/api/connectors/${connectorId}/tasks/${encodeURIComponent(taskId)}`,
-    { title: editTitle.value, description: editDesc.value }
+    { title: editTitle.value, description: editDesc.value, labels: editLabels.value }
   )
   task.value = { ...task.value, ...res.task }
   editing.value = false
 }
 
-async function submitComment() {
-  if (!newComment.value.trim()) return
+async function submitComment(): Promise<boolean> {
+  if (!newComment.value.trim()) return false
   postingComment.value = true
   try {
     const res = await api.post<{ comment: any }>(
@@ -84,8 +94,17 @@ async function submitComment() {
     )
     comments.value.push(res.comment)
     newComment.value = ''
+    return true
   } finally {
     postingComment.value = false
+  }
+}
+
+async function submitCommentAndFinish() {
+  const sent = await submitComment()
+  if (!sent) return
+  if (!task.value?.done) {
+    await toggleDone()
   }
 }
 
@@ -126,8 +145,8 @@ function formatDate(iso: string) {
 
 <template>
   <div>
-    <!-- Breadcrumb -->
-    <AppBreadcrumb>
+    <!-- Breadcrumb: only when coming from explorer -->
+    <AppBreadcrumb v-if="!fromWorkspace">
       <NuxtLink to="/explore" class="hover:text-dt-text transition-colors">explore</NuxtLink>
       <NuxtLink :to="`/explore/${connectorId}`" class="flex items-center gap-1 hover:text-dt-text transition-colors">
         <ConnectorIcon :connector-id="connectorId" />
@@ -138,6 +157,10 @@ function formatDate(iso: string) {
         :to="`/explore/${connectorId}/${encodeURIComponent(task.sourceId)}`"
         class="font-mono text-dt-muted hover:text-dt-text transition-colors"
       >{{ task.sourceId }}</NuxtLink>
+    </AppBreadcrumb>
+    <!-- Breadcrumb: workspace origin -->
+    <AppBreadcrumb v-else>
+      <NuxtLink to="/" class="hover:text-dt-text transition-colors">workspace</NuxtLink>
     </AppBreadcrumb>
 
     <AppSpinner v-if="loading" />
@@ -175,6 +198,13 @@ function formatDate(iso: string) {
       <div v-else class="space-y-3">
         <AppInput v-model="editTitle" class="text-base py-1" />
         <AppTextarea v-model="editDesc" :rows="6" />
+        <AppLabelPicker
+          v-if="task.capabilities?.canLabel"
+          v-model="editLabels"
+          :labels="availableLabels"
+          :can-create="connectorId === 'local'"
+          placeholder="Labels"
+        />
         <div class="flex gap-3">
           <AppButton variant="ghost" size="xs" @click="saveEdit">save</AppButton>
           <AppButton variant="link" size="xs" @click="editing = false">cancel</AppButton>
@@ -341,20 +371,31 @@ function formatDate(iso: string) {
         </ul>
 
         <!-- New comment -->
-        <div class="flex gap-3 items-center pt-1 border-t border-dt-raised">
-          <AppInput
+        <div class="space-y-2 pt-1 border-t border-dt-raised">
+          <AppTextarea
             v-model="newComment"
             placeholder="add a comment…"
-            class="flex-1"
-            @keydown.enter.prevent="submitComment"
+            :rows="3"
+            @keydown.ctrl.enter.prevent="submitComment"
+            @keydown.meta.enter.prevent="submitComment"
           />
-          <AppButton
-            size="xs"
-            variant="accent-outline"
-            :loading="postingComment"
-            :disabled="!newComment.trim()"
-            @click="submitComment"
-          >send</AppButton>
+          <div class="flex justify-end gap-2">
+            <AppButton
+              v-if="!task.done"
+              size="xs"
+              variant="accent"
+              :loading="postingComment"
+              :disabled="!newComment.trim()"
+              @click="submitCommentAndFinish"
+            >send &amp; close</AppButton>
+            <AppButton
+              size="xs"
+              variant="accent-outline"
+              :loading="postingComment"
+              :disabled="!newComment.trim()"
+              @click="submitComment"
+            >send</AppButton>
+          </div>
         </div>
       </div>
     </div>
