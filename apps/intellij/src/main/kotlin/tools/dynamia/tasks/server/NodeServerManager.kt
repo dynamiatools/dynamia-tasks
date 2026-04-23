@@ -27,16 +27,14 @@ class NodeServerManager(
     /** Starts the server and returns the resolved port. Blocks until the port is known. */
     fun start(): Int {
         val serverBundle = resolveServerBundle()
-        val spaPath = resolveSpaPath()
         val projectPath = project.basePath ?: System.getProperty("user.home")
 
-        log.info("DynamiaTasks: launching node $serverBundle --cwd $projectPath --spa $spaPath")
+        log.info("DynamiaTasks: launching node $serverBundle --cwd $projectPath")
 
         val pb = ProcessBuilder(
             resolveNodeExecutable(),
             serverBundle,
             "--cwd", projectPath,
-            "--spa", spaPath,
             "--ide-callback", callbackUrl,
         ).apply {
             redirectErrorStream(true)           // merge stderr → stdout
@@ -180,70 +178,68 @@ class NodeServerManager(
     private fun resolveServerBundle(): String {
         val home = System.getProperty("user.home")
 
-        // 1. Monorepo dev — prefer the live bundle so changes are picked up
+        // 1. Monorepo dev — prefer the live cli.mjs so changes are picked up immediately
         val codeSourcePath = runCatching {
             File(NodeServerManager::class.java.protectionDomain.codeSource.location.toURI())
         }.getOrNull()
         if (codeSourcePath != null) {
             val candidates = listOf(
                 // Running from build/classes/kotlin/main inside the monorepo
-                File(codeSourcePath, "../../../../packages/server/dist/cli.bundle.js"),
-                File(codeSourcePath, "../../../../../packages/server/dist/cli.bundle.js"),
-                File(codeSourcePath.parentFile, "../../../../packages/server/dist/cli.bundle.js"),
-                File(codeSourcePath.parentFile, "../../../../../packages/server/dist/cli.bundle.js"),
-                // Fallback: absolute monorepo location based on home
-                File(home, "IdeaProjects/dynamia-tasks/packages/server/dist/cli.bundle.js"),
+                File(codeSourcePath, "../../../../apps/web/cli.mjs"),
+                File(codeSourcePath, "../../../../../apps/web/cli.mjs"),
+                File(codeSourcePath.parentFile, "../../../../apps/web/cli.mjs"),
+                File(codeSourcePath.parentFile, "../../../../../apps/web/cli.mjs"),
+                // Absolute monorepo location based on home
+                File(home, "IdeaProjects/dynamia-tasks/apps/web/cli.mjs"),
             )
             val live = candidates.map { it.canonicalFile }.firstOrNull { it.exists() }
             if (live != null) {
-                log.info("DynamiaTasks: using live bundle at ${live.absolutePath}")
+                log.info("DynamiaTasks: using live cli.mjs at ${live.absolutePath}")
                 return live.absolutePath
             }
         }
 
-        // 2. Bundled inside the plugin JAR → extract single file to temp
-        if (NodeServerManager::class.java.getResource("/server/cli.bundle.js") != null) {
-            return extractToTemp("server/cli.bundle.js", "cli.bundle.js")
+        // 2. Bundled inside the plugin JAR → extract cli.mjs + .output/ tree to temp
+        if (NodeServerManager::class.java.getResource("/server/cli.mjs") != null) {
+            val cliPath = extractToTemp("server/cli.mjs", "cli.mjs")
+            extractNuxtOutputToTemp()
+            return cliPath
         }
 
-        error("DynamiaTasks: server bundle not found. Run `pnpm --filter @dynamia-tasks/server bundle` first.")
+        error("DynamiaTasks: cli.mjs not found. Run `pnpm --filter @dynamia-tasks/web build` first.")
     }
-
 
     /**
-     * Resolves the SPA static output directory.
-     * In dev: uses apps/web/.output/public from the monorepo.
-     * In production: extracts the /web/ tree from the JAR to a temp dir.
+     * Extracts the /nuxt-output/ tree from the JAR to a temp directory so that
+     * cli.mjs can find .output/server/index.mjs at a predictable relative path.
      */
-    private fun resolveSpaPath(): String {
-        val home = System.getProperty("user.home")
-        val codeSourcePath = runCatching {
-            File(NodeServerManager::class.java.protectionDomain.codeSource.location.toURI())
-        }.getOrNull()
+    private fun extractNuxtOutputToTemp() {
+        val version = NodeServerManager::class.java.`package`?.implementationVersion ?: "dev"
+        val destDir = File(System.getProperty("java.io.tmpdir"), "dynamia-tasks-$version")
 
-        if (codeSourcePath != null) {
-            listOf(
-                File(codeSourcePath, "../../../../apps/web/.output/public"),
-                File(codeSourcePath, "../../../../../apps/web/.output/public"),
-                File(codeSourcePath.parentFile, "../../../../apps/web/.output/public"),
-                File(codeSourcePath.parentFile, "../../../../../apps/web/.output/public"),
-                File(home, "IdeaProjects/dynamia-tasks/apps/web/.output/public"),
-            ).map { it.canonicalFile }.firstOrNull { it.isDirectory }?.let {
-                log.info("DynamiaTasks: using live SPA at ${it.absolutePath}")
-                return it.absolutePath
-            }
+        if (File(destDir, ".output/server/index.mjs").exists()) {
+            log.info("DynamiaTasks: reusing extracted Nuxt output at ${destDir.absolutePath}")
+            return
         }
 
-        // Bundled in JAR → extract entire /web/ tree to temp
-        if (NodeServerManager::class.java.getResource("/web/index.html") != null) {
-            return extractWebToTemp()
-        }
+        log.info("DynamiaTasks: extracting Nuxt output to ${destDir.absolutePath}")
+        destDir.mkdirs()
 
-        // No SPA found — server will serve API only (shows 404 for /)
-        log.warn("DynamiaTasks: SPA not found. Build the web app first: pnpm build:web")
-        return ""
+        val codeSource = NodeServerManager::class.java.protectionDomain.codeSource.location
+        val jar = java.util.jar.JarFile(File(codeSource.toURI()))
+        jar.use { jf ->
+            jf.entries().asSequence()
+                .filter { it.name.startsWith("nuxt-output/") && !it.isDirectory }
+                .forEach { entry ->
+                    // nuxt-output/server/index.mjs → destDir/.output/server/index.mjs
+                    val relative = entry.name.removePrefix("nuxt-output/")
+                    val dest = File(destDir, ".output/$relative")
+                    dest.parentFile.mkdirs()
+                    jf.getInputStream(entry).use { i -> dest.outputStream().use { o -> i.copyTo(o) } }
+                }
+        }
+        log.info("DynamiaTasks: Nuxt output extracted to ${destDir.absolutePath}")
     }
-
 
     private fun extractToTemp(resourcePath: String, fileName: String): String {
         val version = NodeServerManager::class.java.`package`?.implementationVersion ?: "dev"
@@ -257,34 +253,6 @@ class NodeServerManager(
         return destFile.absolutePath
     }
 
-    private fun extractWebToTemp(): String {
-        val version = NodeServerManager::class.java.`package`?.implementationVersion ?: "dev"
-        val destDir = File(System.getProperty("java.io.tmpdir"), "dynamia-tasks-$version/web")
-
-        if (File(destDir, "index.html").exists()) {
-            log.info("DynamiaTasks: reusing extracted SPA at ${destDir.absolutePath}")
-            return destDir.absolutePath
-        }
-
-        log.info("DynamiaTasks: extracting SPA to ${destDir.absolutePath}")
-        destDir.mkdirs()
-
-        // Walk every /web/** resource from the JAR and copy to destDir
-        val codeSource = NodeServerManager::class.java.protectionDomain.codeSource.location
-        val jar = java.util.jar.JarFile(File(codeSource.toURI()))
-        jar.use { jf ->
-            jf.entries().asSequence()
-                .filter { it.name.startsWith("web/") && !it.isDirectory }
-                .forEach { entry ->
-                    val dest = File(destDir, entry.name.removePrefix("web/"))
-                    dest.parentFile.mkdirs()
-                    jf.getInputStream(entry).use { i -> dest.outputStream().use { o -> i.copyTo(o) } }
-                }
-        }
-
-        log.info("DynamiaTasks: SPA extracted to ${destDir.absolutePath}")
-        return destDir.absolutePath
-    }
 
     private fun sha1(input: String): String =
         MessageDigest.getInstance("SHA-1")

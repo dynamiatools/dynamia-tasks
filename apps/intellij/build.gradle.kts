@@ -62,34 +62,36 @@ intellijPlatform {
     }
 }
 
-// ── Copy Nuxt static output + server bundle into plugin resources ────────────
-val webOutputDir    = file("${rootProject.projectDir}/../../apps/web/.output/public")
-val serverBundleDir = file("${rootProject.projectDir}/../../packages/server/dist")
+// ── Copy Nuxt full-stack output into plugin resources ────────────────────────
+// Nuxt build produces:
+//   .output/server/  → Nitro server bundle (index.mjs + chunks/)
+//   .output/public/  → Static SPA assets (served by Nitro automatically)
+// We also bundle cli.mjs (the port-discovery launcher) separately.
+val nuxtOutputDir = file("${rootProject.projectDir}/../../apps/web/.output")
+val nuxtCliFile   = file("${rootProject.projectDir}/../../apps/web/cli.mjs")
 
-tasks.register<Copy>("copyWebResources") {
-    from(webOutputDir)
-    into(layout.projectDirectory.dir("src/main/resources/web"))
-    onlyIf { webOutputDir.exists() }
+tasks.register<Copy>("copyNuxtOutput") {
+    from(nuxtOutputDir)
+    into(layout.projectDirectory.dir("src/main/resources/nuxt-output"))
+    onlyIf { nuxtOutputDir.exists() }
 }
 
-tasks.register<Copy>("copyServerBundle") {
-    from(serverBundleDir) {
-        include("cli.bundle.js")   // self-contained esbuild bundle — no node_modules needed
-    }
+tasks.register<Copy>("copyCliLauncher") {
+    from(nuxtCliFile)
     into(layout.projectDirectory.dir("src/main/resources/server"))
-    onlyIf { File(serverBundleDir, "cli.bundle.js").exists() }
+    onlyIf { nuxtCliFile.exists() }
 }
 
 tasks.named("processResources") {
-    dependsOn("copyWebResources", "copyServerBundle")
+    dependsOn("copyNuxtOutput", "copyCliLauncher")
 }
 
 tasks.named("prepareSandbox") {
-    dependsOn("copyWebResources", "copyServerBundle")
+    dependsOn("copyNuxtOutput", "copyCliLauncher")
 }
 
 tasks.named("buildPlugin") {
-    dependsOn("copyWebResources", "copyServerBundle")
+    dependsOn("copyNuxtOutput", "copyCliLauncher")
 }
 
 

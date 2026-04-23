@@ -1,7 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import type { Workspace, WorkspaceItem, TaskView } from '@dynamia-tasks/core'
-import { getConnector } from './connectors/registry.js'
 
 export async function readWorkspace(projectPath: string): Promise<Workspace> {
   const file = path.join(projectPath, '.dynamia', 'tasks', 'workspace.json')
@@ -19,7 +18,7 @@ export async function writeWorkspace(ws: Workspace): Promise<void> {
   await fs.writeFile(path.join(dir, 'workspace.json'), JSON.stringify(ws, null, 2), 'utf-8')
 }
 
-export async function resolveWorkspace(projectPath: string): Promise<{ items: TaskView[]; cached?: boolean }> {
+export async function resolveWorkspace(projectPath: string): Promise<{ items: TaskView[] }> {
   const ws = await readWorkspace(projectPath)
   const resolved: TaskView[] = []
 
@@ -57,7 +56,6 @@ export async function addToWorkspace(projectPath: string, connectorId: string, t
 export async function removeFromWorkspace(projectPath: string, connectorId: string, taskId: string): Promise<void> {
   const ws = await readWorkspace(projectPath)
   ws.items = ws.items.filter(i => !(i.connectorId === connectorId && i.taskId === taskId))
-  // Re-index order
   ws.items.forEach((item, i) => { item.order = i })
   await writeWorkspace(ws)
 }

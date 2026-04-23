@@ -3,11 +3,13 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "dev:web": "pnpm --filter web dev",
-    "dev:server": "pnpm --filter @dynamia-tasks/server dev",
-    "build:web": "pnpm --filter web build",
+    "dev": "pnpm --filter @dynamia-tasks/web dev",
+    "dev:web": "pnpm --filter @dynamia-tasks/web dev",
+    "build": "pnpm --filter @dynamia-tasks/web build",
+    "build:web": "pnpm --filter @dynamia-tasks/web build",
     "build:all": "pnpm -r build",
     "build:intellij": "pnpm build:all && cd apps/intellij && ./gradlew buildPlugin",
+    "start": "pnpm --filter @dynamia-tasks/web start",
     "test": "pnpm -r test"
   },
   "devDependencies": {

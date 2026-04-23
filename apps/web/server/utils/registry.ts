@@ -10,7 +10,7 @@ export function registerConnector(connector: TaskConnector): void {
 
 export function getConnector(id: string): TaskConnector {
   const c = registry.get(id)
-  if (!c) throw Object.assign(new Error(`Unknown connector: "${id}"`), { code: 'CONNECTOR_NOT_FOUND' })
+  if (!c) throw createError({ statusCode: 404, message: `Unknown connector: "${id}"`, data: { code: 'CONNECTOR_NOT_FOUND' } })
   return c
 }
 
@@ -18,7 +18,9 @@ export function listConnectors(): TaskConnector[] {
   return [...registry.values()]
 }
 
-// Built-in connectors — projectPath injected at startup via configure()
-registerConnector(new LocalConnector())
-registerConnector(new GithubConnector())
+// Register built-in connectors once (singleton — projectPath injected at startup)
+if (registry.size === 0) {
+  registerConnector(new LocalConnector())
+  registerConnector(new GithubConnector())
+}
 

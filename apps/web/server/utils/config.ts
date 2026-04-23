@@ -55,8 +55,6 @@ export async function readCache(connectorId: string): Promise<{ ts: string; data
 }
 
 // ── Instance port registry ────────────────────────────────────────────────────
-// Each running server writes its port to ~/.dynamiatasks/instances/<hash>.json
-// so IDE plugins can discover it by project path without hardcoding a port.
 
 function instanceKey(projectPath: string): string {
   return crypto.createHash('sha1').update(projectPath).digest('hex').slice(0, 12)
@@ -97,3 +95,4 @@ export async function readInstancePort(projectPath: string): Promise<InstanceInf
     return null
   }
 }
+
