@@ -7,7 +7,8 @@
     "dynamia-server": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && pnpm bundle",
+    "bundle": "esbuild src/cli.ts --bundle --platform=node --target=node20 --outfile=dist/cli.bundle.js --external:fsevents",
     "dev": "tsx src/cli.ts --cwd ${DYNAMIA_PROJECT_PATH:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}",
     "start": "node dist/cli.js"
   },
@@ -21,9 +22,8 @@
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
+    "esbuild": "^0.28.0",
     "tsx": "^4.10.2",
     "typescript": "^5.4.5"
   }
 }
-
-

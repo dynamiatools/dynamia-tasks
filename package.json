@@ -7,6 +7,7 @@
     "dev:server": "pnpm --filter @dynamia-tasks/server dev",
     "build:web": "pnpm --filter web build",
     "build:all": "pnpm -r build",
+    "build:intellij": "pnpm build:all && cd apps/intellij && ./gradlew buildPlugin",
     "test": "pnpm -r test"
   },
   "devDependencies": {

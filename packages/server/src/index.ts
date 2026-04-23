@@ -45,7 +45,15 @@ export async function startServer(options: ServerOptions): Promise<void> {
   if (spaPath) {
     try {
       await fs.access(spaPath)
-      await fastify.register(staticPlugin, { root: spaPath, prefix: '/' })
+      await fastify.register(staticPlugin, { root: spaPath, prefix: '/', wildcard: false })
+      // SPA fallback: serve index.html for any non-API route not matched as a file
+      fastify.setNotFoundHandler((req, reply) => {
+        if (req.url.startsWith('/api/')) {
+          reply.code(404).send({ error: true, message: 'API endpoint not found' })
+        } else {
+          reply.sendFile('index.html')
+        }
+      })
     } catch { /* SPA not built yet */ }
   }
 

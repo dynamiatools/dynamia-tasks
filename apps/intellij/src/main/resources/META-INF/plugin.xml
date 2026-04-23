@@ -1,0 +1,55 @@
+<idea-plugin>
+    <id>tools.dynamia.tasks</id>
+    <name>Dynamia Tasks</name>
+    <vendor email="hello@dynamia.tools" url="https://dynamia.tools">Dynamia Tools</vendor>
+
+    <description><![CDATA[
+        <p><b>Dynamia Tasks</b> — developer-first task manager right inside your IDE.</p>
+        <ul>
+            <li>Unifies tasks from any source (local files, GitHub Issues, and more)</li>
+            <li>Workspace checklist per project</li>
+            <li>Explorer to browse and add tasks from any connector</li>
+            <li>Open a file directly from a task description</li>
+        </ul>
+        <p>All data stays local — no cloud, no accounts required.</p>
+    ]]></description>
+
+    <!-- Compatible with IntelliJ-based IDEs 2025.1+ -->
+    <idea-version since-build="251"/>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+
+        <!-- Tool Window anchored to the right -->
+        <toolWindow
+            id="DynamiaTasks"
+            anchor="right"
+            factoryClass="tools.dynamia.tasks.DynamiaTasksWindowFactory"
+            icon="/icons/dynamia-tasks-13.svg"
+            doNotActivateOnStart="true"
+        />
+
+        <!-- Notification group for IDE callbacks -->
+        <notificationGroup
+            id="DynamiaTasks"
+            displayType="BALLOON"
+            isLogByDefault="true"
+        />
+
+        <!-- Application-level service holds the per-project server map -->
+        <applicationService
+            serviceImplementation="tools.dynamia.tasks.server.NodeServerRegistry"
+        />
+
+    </extensions>
+
+    <projectListeners>
+        <listener
+            class="tools.dynamia.tasks.DynamiaTasksStartupListener"
+            topic="com.intellij.openapi.project.ProjectManagerListener"
+        />
+    </projectListeners>
+
+</idea-plugin>
+
