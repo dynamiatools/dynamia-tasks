@@ -17,6 +17,9 @@ importers:
       '@dynamia-tasks/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@heroicons/vue':
+        specifier: ^2.2.0
+        version: 2.2.0(vue@3.5.32(typescript@5.9.3))
       '@nuxtjs/tailwindcss':
         specifier: ^6.12.0
         version: 6.14.0(magicast@0.5.2)(tsx@4.21.0)(yaml@2.8.3)
@@ -469,6 +472,11 @@ packages:
 
   '@fastify/static@7.0.4':
     resolution: {integrity: sha512-p2uKtaf8BMOZWLs6wu+Ihg7bWNBdjNgCwDza4MJtTqg+5ovKmcbgbR9Xs5/smZ1YISfzKOCNYmZV8LaCj+eJ1Q==}
+
+  '@heroicons/vue@2.2.0':
+    resolution: {integrity: sha512-G3dbSxoeEKqbi/DFalhRxJU4mTXJn7GwZ7ae8NuEQzd1bqdd0jAbdaBZlHPcvPD2xI1iGzNVB4k20Un2AguYPw==}
+    peerDependencies:
+      vue: '>= 3'
 
   '@ioredis/commands@1.5.1':
     resolution: {integrity: sha512-JH8ZL/ywcJyR9MmJ5BNqZllXNZQqQbnVZOqpPQqE1vHiFgAw4NHbvE0FOduNU8IX9babitBT46571OnPTT0Zcw==}
@@ -4463,6 +4471,10 @@ snapshots:
       fastify-plugin: 4.5.1
       fastq: 1.20.1
       glob: 10.5.0
+
+  '@heroicons/vue@2.2.0(vue@3.5.32(typescript@5.9.3))':
+    dependencies:
+      vue: 3.5.32(typescript@5.9.3)
 
   '@ioredis/commands@1.5.1': {}
 

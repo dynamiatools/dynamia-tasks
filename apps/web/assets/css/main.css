@@ -4,13 +4,21 @@
 
 /* ── VS Code / IntelliJ-inspired dark palette ─────────────────────────────── */
 :root {
-  --bg-base:    #1e1e1e;   /* VS Code editor background */
-  --bg-surface: #252526;   /* VS Code sidebar / nav */
-  --bg-raised:  #2d2d30;   /* VS Code input / panel */
-  --border:     #3e3e42;   /* VS Code panel border */
-  --text-base:  #d4d4d4;   /* VS Code default text */
-  --text-muted: #858585;   /* VS Code comments / hints */
-  --text-dim:   #6a6a6a;   /* VS Code breadcrumbs */
+  --bg-base:      #1e1e1e;
+  --bg-surface:   #252526;
+  --bg-raised:    #2d2d30;
+  --border:       #3e3e42;
+  --text-base:    #d4d4d4;
+  --text-muted:   #858585;
+  --text-dim:     #6a6a6a;
+  --text-body:    #a0a0a0;
+  --accent:       #4d9375;
+  --accent-deep:  #1e3a2f;
+  --danger:       #f87171;
+  --danger-bg:    #3b1f1f;
+  --danger-bdr:   #7f1d1d;
+  --warning:      #f59e0b;
+  --code:         #ce9178;
 }
 
 html, body {
@@ -20,7 +28,7 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Custom checkboxes ─────────────────────────────────────────────────────── */
+/* ── Custom checkboxes ────────────────────────────────────────────────────── */
 input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
@@ -34,36 +42,55 @@ input[type="checkbox"] {
   position: relative;
   transition: background-color 0.1s, border-color 0.1s;
 }
-
-input[type="checkbox"]:hover {
-  border-color: #6a6a6a;
-}
-
-input[type="checkbox"]:checked {
-  background-color: #4d9375; /* VS Code-style teal accent */
-  border-color: #4d9375;
-}
-
+input[type="checkbox"]:hover   { border-color: var(--text-dim); }
+input[type="checkbox"]:checked { background-color: var(--accent); border-color: var(--accent); }
 input[type="checkbox"]:checked::after {
   content: '';
   position: absolute;
-  left: 3px;
-  top: 0.5px;
-  width: 5px;
-  height: 9px;
-  border: 2px solid #1e1e1e;
-  border-top: none;
-  border-left: none;
+  left: 3px; top: 0.5px;
+  width: 5px; height: 9px;
+  border: 2px solid var(--bg-base);
+  border-top: none; border-left: none;
   transform: rotate(45deg);
 }
 
-/* ── Select options (dark bg) ──────────────────────────────────────────────── */
+/* ── Select options ───────────────────────────────────────────────────────── */
 select option {
   background-color: var(--bg-raised);
   color: var(--text-base);
 }
 
-/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 4px; }
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── HTML task description (content rendered from external sources) ───────── */
+.prose-dt img {
+  max-width: 100%;
+  max-height: 400px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  display: inline-block;
+  vertical-align: middle;
+}
+.prose-dt a            { color: var(--accent); text-decoration: underline; }
+.prose-dt table        { border-collapse: collapse; width: 100%; font-size: 0.8rem; }
+.prose-dt th,
+.prose-dt td           { border: 1px solid var(--border); padding: 4px 8px; color: var(--text-body); }
+.prose-dt th           { background: var(--bg-raised); color: var(--text-base); }
+.prose-dt pre,
+.prose-dt code         { background: var(--bg-raised); border-radius: 3px; padding: 2px 5px; font-size: 0.78rem; color: var(--code); }
+.prose-dt blockquote   { border-left: 3px solid var(--border); margin: 0; padding-left: 12px; color: var(--text-dim); }
+
+/* Image overlay link inside task description */
+.dt-img-link {
+  background: rgba(0,0,0,0.65);
+  border-radius: 3px;
+  padding: 2px 5px;
+  font-size: 10px;
+  color: var(--text-base);
+  text-decoration: none;
+  line-height: 1.4;
+}
+.dt-img-link:hover { background: rgba(77,147,117,0.8); color: #fff; }

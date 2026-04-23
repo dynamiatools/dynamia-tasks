@@ -10,8 +10,9 @@
   },
   "dependencies": {
     "@dynamia-tasks/core": "workspace:*",
-    "@pinia/nuxt": "^0.5.5",
+    "@heroicons/vue": "^2.2.0",
     "@nuxtjs/tailwindcss": "^6.12.0",
+    "@pinia/nuxt": "^0.5.5",
     "pinia": "^2.1.7"
   },
   "devDependencies": {
@@ -21,4 +22,3 @@
     "vue-router": "^4.4.0"
   }
 }
-

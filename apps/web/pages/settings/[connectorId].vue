@@ -60,56 +60,56 @@ async function save() {
 <template>
   <div>
     <!-- Breadcrumb -->
-    <p class="text-xs text-zinc-600 mb-4 flex items-center gap-1">
-      <NuxtLink to="/settings" class="hover:text-zinc-300 transition-colors">settings</NuxtLink>
-      <span class="text-zinc-700">/</span>
-      <ConnectorIcon :connector-id="connectorId" class="text-zinc-400" />
-      <span class="text-zinc-400 ml-0.5">{{ connectorId }}</span>
-    </p>
+    <AppBreadcrumb>
+      <NuxtLink to="/settings" class="hover:text-dt-text transition-colors">settings</NuxtLink>
+      <span class="flex items-center gap-1">
+        <ConnectorIcon :connector-id="connectorId" class="text-dt-muted" />
+        <span class="text-dt-muted ml-0.5">{{ connectorId }}</span>
+      </span>
+    </AppBreadcrumb>
 
-    <p class="mb-5 text-zinc-300 font-medium flex items-center gap-2">
-      <ConnectorIcon :connector-id="connectorId" :size="16" class="text-zinc-300" />
+    <p class="mb-5 text-dt-text font-medium flex items-center gap-2">
+      <ConnectorIcon :connector-id="connectorId" :size="16" class="text-dt-text" />
       {{ connector?.name }}
     </p>
 
-    <!-- Custom connector config component -->
+    <!-- Custom connector config -->
     <component :is="customComponent" v-if="customComponent" />
 
     <!-- Generic fallback form -->
     <template v-else>
-      <div v-if="!schema" class="text-zinc-500 animate-pulse">loading…</div>
+      <AppSpinner v-if="!schema" />
 
       <div v-else>
-        <div v-if="schema.fields.length === 0" class="text-zinc-500 text-sm">
-          no configuration needed.
-        </div>
+        <p v-if="schema.fields.length === 0" class="text-dt-muted text-sm">no configuration needed.</p>
 
         <form v-else @submit.prevent="save" class="space-y-5">
           <template v-for="field in schema.fields" :key="field.key">
             <div>
-              <label class="block text-xs text-zinc-500 mb-1">
+              <label class="block text-xs text-dt-muted mb-1">
                 {{ field.label }}{{ field.required ? ' *' : '' }}
               </label>
 
-              <input
+              <AppInput
                 v-if="field.type === 'text' || field.type === 'password'"
                 v-model="form[field.key]"
                 :type="field.type"
                 :placeholder="field.placeholder ?? ''"
-                class="w-full bg-transparent border-b border-zinc-700 focus:border-zinc-400 outline-none py-1 text-sm text-zinc-100 placeholder-zinc-600 font-mono transition-colors"
+                mono
               />
 
-              <textarea
+              <AppTextarea
                 v-else-if="field.type === 'multiselect'"
                 v-model="form[field.key]"
                 :placeholder="field.placeholder ?? 'one per line'"
-                class="w-full bg-zinc-900 border border-zinc-700 focus:border-zinc-500 outline-none p-2 text-sm text-zinc-100 font-mono min-h-16 resize-y rounded transition-colors"
+                mono
+                :rows="4"
               />
 
               <select
                 v-else-if="field.type === 'select'"
                 v-model="form[field.key]"
-                class="bg-zinc-900 border-b border-zinc-700 text-sm text-zinc-200 outline-none py-0.5 cursor-pointer"
+                class="bg-dt-raised border-b border-dt-border text-sm text-dt-text outline-none py-0.5 cursor-pointer focus:border-dt-accent transition-colors"
               >
                 <option v-for="opt in field.options" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
@@ -121,17 +121,15 @@ async function save() {
                 class="mt-1"
               />
 
-              <p v-if="field.helpText" class="text-xs text-zinc-600 mt-1">{{ field.helpText }}</p>
+              <p v-if="field.helpText" class="text-xs text-dt-dim mt-1">{{ field.helpText }}</p>
             </div>
           </template>
 
           <div class="flex gap-4 items-center pt-1">
-            <button
-              type="submit"
-              :disabled="saving"
-              class="text-sm text-zinc-200 hover:text-white disabled:opacity-30 transition-colors"
-            >{{ saving ? 'saving…' : 'save' }}</button>
-            <span v-if="saved" class="text-xs text-emerald-500">saved ✓</span>
+            <AppButton type="submit" :loading="saving" variant="ghost">
+              {{ saving ? 'saving…' : 'save' }}
+            </AppButton>
+            <span v-if="saved" class="text-xs text-dt-accent">saved ✓</span>
           </div>
         </form>
       </div>
