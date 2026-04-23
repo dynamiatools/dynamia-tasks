@@ -9,7 +9,9 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
     public: {
-      apiBase: 'http://localhost:7842',
+      // Empty string → useApi falls back to window.location.origin (same-origin).
+      // Override with NUXT_PUBLIC_API_BASE=http://localhost:7842 for standalone dev.
+      apiBase: '',
     },
   },
   app: {
