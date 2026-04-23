@@ -2,10 +2,9 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import staticPlugin from '@fastify/static'
 import fs from 'node:fs/promises'
-import path from 'node:path'
 import type { TaskFilter } from '@dynamia-tasks/core'
 import { getConnector, listConnectors } from './connectors/registry.js'
-import { readConfig, writeConfig, readCache, writeCache } from './config.js'
+import { readConfig, writeConfig, readCache, writeCache, writeInstancePort, removeInstancePort } from './config.js'
 import {
   resolveWorkspace,
   addToWorkspace,
@@ -329,6 +328,16 @@ export async function startServer(options: ServerOptions): Promise<void> {
       .send(buffer)
   })
 
+  // ── GET /api/instance ────────────────────────────────────────────────────────
+  // Returns runtime info (port, projectPath, pid). Useful for IDE plugins
+  // that need to discover the actual port after auto-selection.
+  fastify.get('/api/instance', async () => ({
+    port,
+    projectPath,
+    pid: process.pid,
+    startedAt: new Date().toISOString(),
+  }))
+
   // ── POST /api/ide/open-file ──────────────────────────────────────────────────
   fastify.post('/api/ide/open-file', async (req) => {
     if (!ideCallbackUrl) return { ok: false, message: 'No IDE callback configured' }
@@ -352,6 +361,18 @@ export async function startServer(options: ServerOptions): Promise<void> {
   })
 
   await fastify.listen({ port, host: '127.0.0.1' })
+
+  // Persist port so IDE plugins can discover it
+  await writeInstancePort(projectPath, port)
+
+  // Clean up instance file on graceful shutdown
+  const cleanup = async () => {
+    await removeInstancePort(projectPath)
+    process.exit(0)
+  }
+  process.once('SIGINT', cleanup)
+  process.once('SIGTERM', cleanup)
+
   console.log(`✓ dynamia-tasks server running on http://localhost:${port}`)
   console.log(`  projectPath: ${projectPath}`)
 }
