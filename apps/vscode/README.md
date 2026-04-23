@@ -1,56 +1,60 @@
 # VS Code Extension — `apps/vscode`
 
-## Responsabilidad
+## Responsibility
 
-Esta extensión integra Dynamia Tasks en VS Code como un panel lateral (WebviewPanel).
+This extension integrates Dynamia Tasks into VS Code as a side panel (WebviewPanel).
 
-## Qué hace
+## What It Does
 
-1. Al activarse, inicia `packages/server` como proceso Node embebido en puerto `7842`
-2. Levanta un servidor de callback HTTP en puerto `7843` para recibir peticiones del servidor Node
-3. Abre un `WebviewPanel` con un `<iframe>` apuntando a `http://localhost:7842`
-4. Inyecta `window.__dynamia_host = 'vscode'` en el HTML del panel
-5. Sirve el output estático de `apps/web` (`apps/web/.output/public/`) embebido en el bundle de la extensión
+1. On activation, starts `packages/server` as an embedded Node process **without** `--port`, letting the CLI auto-select the first free port from `7842`. The actual port is discovered by:
+   - Parsing the stdout line `✓ dynamia-tasks server running on http://localhost:<PORT>`
+   - Or reading `~/.dynamiatasks/instances/<sha1(projectPath)[0..12]>.json` → field `port`
+2. Starts an IDE callback HTTP server on an auto-selected port (starting from 7843) and passes `--ide-callback http://127.0.0.1:<callbackPort>` to the Node server.
+3. Opens a `WebviewPanel` with an `<iframe>` pointing to `http://localhost:<PORT>` (discovered in step 1).
+4. Injects `window.__dynamia_host = 'vscode'` into the panel HTML. The SPA uses `window.location.origin` as its API base — no port is hardcoded in the frontend.
+5. Serves the static output of `apps/web` (`apps/web/.output/public/`) bundled with the extension.
 
 ## Callback IDE Contract
 
-```
-POST http://localhost:7843/ide/open-file
-Body: { "path": "/absolute/path/file.ts", "line": 42 }
-→ abre el archivo en el editor con vscode.workspace.openTextDocument + showTextDocument
+The IDE callback server listens on an **auto-selected free port** (starting from 7843). The port is passed to the Node server via `--ide-callback http://127.0.0.1:<callbackPort>`.
 
-POST http://localhost:7843/ide/notify
+```
+POST http://127.0.0.1:<callbackPort>/ide/open-file
+Body: { "path": "/absolute/path/file.ts", "line": 42 }
+→ opens the file in the editor via vscode.workspace.openTextDocument + showTextDocument
+
+POST http://127.0.0.1:<callbackPort>/ide/notify
 Body: { "type": "info|warning|error|success", "message": "..." }
-→ llama a vscode.window.showInformationMessage / showErrorMessage / showWarningMessage
+→ calls vscode.window.showInformationMessage / showErrorMessage / showWarningMessage
 ```
 
 ## Stack
 
-- TypeScript + `vsce` para packaging
+- TypeScript + `vsce` for packaging
 - Entry: `src/extension.ts`
-- Exporta: `activate(context)` y `deactivate()`
+- Exports: `activate(context)` and `deactivate()`
 
-## Build pendiente
+## Build
 
 ```bash
-# 1. Build de la SPA
+# 1. Build the SPA
 pnpm build:web
 
-# 2. Build de la extensión
+# 2. Build the extension
 cd apps/vscode
 pnpm build
 
-# 3. Empaquetar
+# 3. Package
 vsce package
 ```
 
-## Dependencias previstas
+## Dependencies
 
 - `@dynamia-tasks/server` (workspace:*)
 - `@dynamia-tasks/core` (workspace:*)
-- `vscode` (peer, provideada por el IDE)
+- `vscode` (peer, provided by the IDE)
 
-## Estructura esperada
+## Expected Structure
 
 ```
 apps/vscode/
@@ -58,7 +62,7 @@ apps/vscode/
 ├── tsconfig.json
 ├── src/
 │   ├── extension.ts        # activate / deactivate
-│   └── callbackServer.ts   # HTTP listener port 7843
+│   └── callbackServer.ts   # HTTP listener on auto-selected port
 └── dist/
     └── web/                # copy of apps/web/.output/public/
 ```

@@ -1,41 +1,47 @@
 # IntelliJ Plugin — `apps/intellij`
 
-## Responsabilidad
+## Responsibility
 
-Este plugin integra Dynamia Tasks en IntelliJ IDEA como un Tool Window con panel JCEF.
+This plugin integrates Dynamia Tasks into IntelliJ IDEA as a Tool Window with a JCEF panel.
 
-## Qué hace
+## What It Does
 
-1. `DynamiaTasksPlugin.kt` — `StartupActivity`: determina `project.basePath`, lanza `NodeServerManager`
-2. `NodeServerManager.kt` — ejecuta `node packages/server/dist/cli.js` como proceso hijo con `ProcessBuilder`:
+1. `DynamiaTasksPlugin.kt` — `StartupActivity`: resolves `project.basePath`, launches `NodeServerManager`
+2. `NodeServerManager.kt` — runs `node packages/server/dist/cli.js` as a child process via `ProcessBuilder`:
    ```kotlin
+   // Do NOT pass --port: the CLI auto-selects the first free port from 7842.
+   // The actual port is persisted in ~/.dynamiatasks/instances/<hash>.json
+   // and exposed at GET /api/instance once the server is up.
    ProcessBuilder(
      "node", serverBundlePath,
-     "--port", "7842",
      "--cwd", project.basePath ?: homePath,
-     "--ide-callback", "http://127.0.0.1:7843"
+     "--ide-callback", "http://127.0.0.1:<callbackPort>"
    ).start()
    ```
-3. `IdeCallbackServer.kt` — servidor HTTP embebido en puerto `7843`:
+   After launching the process, read the actual port using one of these methods (in order of preference):
+   - **Stdout**: parse the line `✓ dynamia-tasks server running on http://localhost:<PORT>` from the process output.
+   - **Instance file**: read `~/.dynamiatasks/instances/<sha1(projectPath)[0..12]>.json` → field `port`.
+   - **Endpoint**: `GET http://localhost:<PORT>/api/instance` (requires knowing the port first; useful for verification).
+3. `IdeCallbackServer.kt` — embedded HTTP server on an auto-selected port (starting from 7843):
    - `POST /ide/open-file` → `OpenFileDescriptor(project, file, line).navigate(true)`
    - `POST /ide/notify` → `Notifications.Bus.notify(Notification(...))`
-4. `DynamiaTasksWindowFactory.kt` — crea el Tool Window
-5. `DynamiaTasksPanel.kt` — JCEF Browser apuntando a `http://localhost:7842`, inyecta `window.__dynamia_host = 'intellij'` via `executeJavaScript` antes del page load
+4. `DynamiaTasksWindowFactory.kt` — creates the Tool Window
+5. `DynamiaTasksPanel.kt` — JCEF Browser pointing to `http://localhost:<PORT>` (discovered in step 2), injects `window.__dynamia_host = 'intellij'` via `executeJavaScript` before page load. The SPA uses `window.location.origin` as its API base — no port is hardcoded in the frontend.
 
 ## Stack
 
 - Kotlin + Gradle + IntelliJ Platform Plugin SDK
-- `plugin.xml` declara: `toolWindow`, `applicationService`, `postStartupActivity`
+- `plugin.xml` declares: `toolWindow`, `applicationService`, `postStartupActivity`
 - Minimum IDE version: 2024.1
 
-## Build pendiente
+## Build
 
 ```bash
 cd apps/intellij
 ./gradlew buildPlugin
 ```
 
-## Estructura esperada
+## Expected Structure
 
 ```
 apps/intellij/
@@ -55,4 +61,3 @@ apps/intellij/
 └── src/main/resources/
     └── web/               # copy of apps/web/.output/public/
 ```
-

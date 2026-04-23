@@ -33,13 +33,15 @@ Dynamia Tasks unifies tasks from **any source** into a single checklist UI — f
 
 ```
 IDE Plugin (IntelliJ / VS Code)
-  └─ spawns Node.js local server on localhost:7842
-  └─ opens WebView → http://localhost:7842
+  └─ spawns Node.js local server (auto-selects free port from 7842)
+  └─ discovers actual port from stdout or ~/.dynamiatasks/instances/<hash>.json
+  └─ opens WebView → http://localhost:<PORT>
 
-Node Server
-  ├─ serves Nuxt SPA (static)
+Node Server (port auto-selected, default 7842)
+  ├─ serves Nuxt SPA (static, same-origin)
   ├─ connector registry (local, github, ...)
   ├─ reads/writes ~/.dynamiatasks/config.json
+  ├─ writes ~/.dynamiatasks/instances/<hash>.json  (port registry)
   └─ reads/writes {project}/.dynamiatasks/workspace.json
 
 Connectors
@@ -48,7 +50,7 @@ Connectors
   └─ ...     → any third-party source
 
 Nuxt SPA
-  └─ talks to server via fetch() → localhost:7842
+  └─ talks to server via same-origin fetch() (no hardcoded port)
   └─ never talks to connectors directly
 ```
 
@@ -133,6 +135,8 @@ Settings → Plugins → ⚙️ → Install Plugin from Disk...
 ```
 ~/.dynamiatasks/
 ├── config.json          # All connector configs + UI preferences
+├── instances/
+│   └── <hash>.json      # Active server instances (port, pid, projectPath)
 └── cache/
     └── *.json           # Per-connector offline cache
 ```
@@ -217,11 +221,11 @@ pnpm install
 ### Run (browser standalone mode)
 
 ```bash
-# Terminal 1 — local server
+# Terminal 1 — local server (auto-selects port, default 7842)
 pnpm dev:server
 
-# Terminal 2 — Nuxt SPA
-pnpm dev:web
+# Terminal 2 — Nuxt SPA (point to the server port)
+NUXT_PUBLIC_API_BASE=http://localhost:7842 pnpm dev:web
 ```
 
 Open [http://localhost:3000](http://localhost:3000).

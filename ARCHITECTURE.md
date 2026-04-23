@@ -457,6 +457,8 @@ export interface AppConfig {
 ```
 ~/.dynamiatasks/
 ├── config.json                         # Global config (all connectors + UI)
+├── instances/
+│   └── <sha1(projectPath)[0..12]>.json # Active server: { port, pid, projectPath, startedAt }
 └── cache/
     └── {connectorId}-{sourceId}.json   # Per-connector offline cache
 
@@ -528,9 +530,11 @@ export interface AppConfig {
 **Location:** `packages/server/`  
 **Runtime:** Node.js 20+  
 **Framework:** Fastify 4  
-**Default Port:** 7842
+**Default Port:** 7842 (auto-selects next free port if occupied; up to +50 attempts)
 
 The server is the single entry point for all operations. It owns the connector registry and routes all task operations to the correct connector.
+
+On startup the server writes `~/.dynamiatasks/instances/<sha1(projectPath)[0..12]>.json` with the actual port, PID, and project path — enabling IDE plugins to discover the port without hardcoding it. The file is removed on graceful shutdown (SIGINT / SIGTERM).
 
 ### Startup
 
@@ -600,7 +604,13 @@ export async function startServer(options: ServerOptions): Promise<void>
 | `DELETE` | `/api/workspace/:connectorId/:taskId` | Remove item |
 | `PATCH` | `/api/workspace/reorder` | Reorder `{ items: WorkspaceItem[] }` |
 
-#### IDE Callbacks
+#### Instance Registry
+
+| Method | Route | Description |
+|---|---|---|
+| `GET` | `/api/instance` | Runtime info: `{ port, projectPath, pid, startedAt }` |
+
+
 
 | Method | Route | Description |
 |---|---|---|
@@ -687,13 +697,14 @@ Removing from workspace removes the reference from `workspace.json` only — nev
 
 ```
 SPA (Nuxt)
-  └─ fetch() → localhost:7842 for all task/connector/workspace ops
-  └─ fetch() → localhost:7842/api/ide/* for IDE-native ops
+  └─ same-origin fetch() for all task/connector/workspace ops
+     (window.location.origin used as apiBase — no hardcoded port)
+  └─ fetch() → <origin>/api/ide/* for IDE-native ops
 
-Node Server (port 7842)
-  └─ /api/ide/* → forwards to IDE callback (port 7843)
+Node Server (auto-selected port, default 7842)
+  └─ /api/ide/* → forwards to IDE callback server
 
-IDE Plugin (port 7843)
+IDE Plugin (callback server on auto-selected port)
   └─ /ide/open-file → native IDE API
   └─ /ide/notify    → native IDE API
 ```
@@ -733,7 +744,13 @@ VS Code sets it in the HTML wrapper. Used only for minor UI adjustments.
 ```typescript
 export default defineNuxtConfig({
   ssr: false,
-  runtimeConfig: { public: { apiBase: 'http://localhost:7842' } },
+  runtimeConfig: {
+    public: {
+      // Empty → SPA uses window.location.origin (same-origin, works on any port).
+      // Override with NUXT_PUBLIC_API_BASE=http://localhost:7842 for standalone dev.
+      apiBase: '',
+    },
+  },
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
 })
 ```
@@ -794,14 +811,19 @@ stores/
 
 ```typescript
 // composables/useApi.ts
-const BASE = useRuntimeConfig().public.apiBase
+export const useApi = () => {
+  const configured = useRuntimeConfig().public.apiBase as string
+  // When the SPA is served by the Dynamia Tasks server (production / IDE webview),
+  // apiBase is empty and requests go to the same origin — correct on any port.
+  const BASE = configured || (import.meta.client ? window.location.origin : '')
 
-export const useApi = () => ({
-  get:    <T>(path: string)                => $fetch<T>(`${BASE}${path}`),
-  post:   <T>(path: string, body: unknown) => $fetch<T>(`${BASE}${path}`, { method: 'POST', body }),
-  patch:  <T>(path: string, body: unknown) => $fetch<T>(`${BASE}${path}`, { method: 'PATCH', body }),
-  delete: <T>(path: string)               => $fetch<T>(`${BASE}${path}`, { method: 'DELETE' }),
-})
+  return {
+    get:    <T>(path: string)                => $fetch<T>(`${BASE}${path}`),
+    post:   <T>(path: string, body: unknown) => $fetch<T>(`${BASE}${path}`, { method: 'POST', body }),
+    patch:  <T>(path: string, body: unknown) => $fetch<T>(`${BASE}${path}`, { method: 'PATCH', body }),
+    delete: <T>(path: string)               => $fetch<T>(`${BASE}${path}`, { method: 'DELETE' }),
+  }
+}
 ```
 
 ---
@@ -812,12 +834,20 @@ export const useApi = () => ({
 
 ```typescript
 // src/extension.ts
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   const projectPath = vscode.workspace.workspaceFolders?.[0].uri.fsPath ?? ''
   const spaPath     = path.join(context.extensionPath, 'dist', 'web')
 
-  const callbackServer = startIdeCallbackServer(7843)
-  startServer({ port: 7842, projectPath, ideCallbackUrl: 'http://127.0.0.1:7843', spaPath })
+  // Auto-select a free callback port
+  const callbackPort = await findFreePort(7843)
+  const callbackServer = startIdeCallbackServer(callbackPort)
+
+  // Start the Node server without --port so the CLI auto-selects a free port.
+  // Discover the actual port from stdout line:
+  //   "✓ dynamia-tasks server running on http://localhost:<PORT>"
+  // or read ~/.dynamiatasks/instances/<hash>.json after the process starts.
+  const serverProcess = startServer({ projectPath, ideCallbackUrl: `http://127.0.0.1:${callbackPort}`, spaPath })
+  const serverPort = await discoverPort(serverProcess) // reads stdout
 
   const panel = vscode.window.createWebviewPanel(
     'dynamiaTasks', 'Dynamia Tasks', vscode.ViewColumn.Two,
@@ -826,8 +856,9 @@ export function activate(context: vscode.ExtensionContext) {
   panel.webview.html = `<!DOCTYPE html><html>
     <head><meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline'"></head>
     <body style="margin:0;height:100vh">
-      <iframe src="http://localhost:7842" style="width:100%;height:100%;border:none"></iframe>
+      <iframe src="http://localhost:${serverPort}" style="width:100%;height:100%;border:none"></iframe>
     </body></html>`
+  // The SPA uses window.location.origin — no port hardcoded in the frontend.
 
   context.subscriptions.push(new vscode.Disposable(() => callbackServer.close()))
 }
@@ -850,13 +881,19 @@ src/main/kotlin/com/dynamia/tasks/
 `NodeServerManager` launch command:
 
 ```kotlin
+// Do NOT pass --port: the CLI auto-selects the first free port from 7842.
+// Read the actual port from stdout or ~/.dynamiatasks/instances/<hash>.json.
 ProcessBuilder(
   "node", serverBundlePath,
-  "--port", "7842",
   "--cwd", project.basePath ?: homePath,
-  "--ide-callback", "http://127.0.0.1:7843"
+  "--ide-callback", "http://127.0.0.1:<callbackPort>"   // callback port also auto-selected
 ).start()
 ```
+
+Port discovery (choose one):
+1. **Stdout** — parse line `✓ dynamia-tasks server running on http://localhost:<PORT>`
+2. **Instance file** — read `~/.dynamiatasks/instances/<sha1(projectPath)[0..12]>.json` → `port`
+3. **API** — `GET http://localhost:<PORT>/api/instance` (useful to verify after discovery)
 
 `IdeCallbackServer` implements `/ide/open-file` (via `OpenFileDescriptor`) and `/ide/notify` (via `Notifications.Bus`).
 
@@ -923,7 +960,7 @@ ProcessBuilder(
 6. **Local task IDs must follow `"local-{uuid}"` format.** Use `crypto.randomUUID()`.
 7. **Workspace items are references, not copies.** Only `{ connectorId, taskId }` in `workspace.json`.
 8. **New connectors never require changes** to `core`, `web`, `vscode`, or `intellij`.
-9. **SPA API base is `http://localhost:7842`.** Set `NUXT_PUBLIC_API_BASE` for dev overrides.
+9. **SPA `apiBase` defaults to empty string (same-origin).** When served by the Node server the SPA calls `window.location.origin` — works on any port. Set `NUXT_PUBLIC_API_BASE=http://localhost:7842` only for standalone dev (Nuxt dev server ≠ Node server).
 
 ### File Modification Rules
 
