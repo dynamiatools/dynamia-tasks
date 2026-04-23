@@ -4,6 +4,8 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-04-21',
   devtools: { enabled: false },
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
+  // Register all components by filename only, regardless of subdirectory depth
+  components: [{ path: '~/components', pathPrefix: false }],
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
     public: {

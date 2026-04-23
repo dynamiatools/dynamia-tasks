@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import type { TaskLabel } from '@dynamia-tasks/core'
 import { ArrowLeftIcon, PlusIcon, XMarkIcon } from '@heroicons/vue/20/solid'
-import AppSpinner from "../../components/ui/AppSpinner.vue";
-import AppAlert from "../../components/ui/AppAlert.vue";
-import AppSectionLabel from "../../components/ui/AppSectionLabel.vue";
 
 interface ConnectorInfo {
   id: string

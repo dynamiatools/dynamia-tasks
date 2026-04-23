@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { PlusIcon, ChevronRightIcon, Squares2X2Icon, ExclamationCircleIcon, XMarkIcon } from '@heroicons/vue/20/solid'
-import TaskStatusIcon from "../components/ui/TaskStatusIcon.vue";
 
 const workspace = useWorkspaceStore()
 const connectors = useConnectorsStore()
