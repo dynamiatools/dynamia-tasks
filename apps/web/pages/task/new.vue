@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { TaskLabel } from '@dynamia-tasks/core'
-import { ArrowLeftIcon, PlusIcon, XMarkIcon } from '@heroicons/vue/20/solid'
+import { ArrowLeftIcon } from '@heroicons/vue/20/solid'
 
 interface ConnectorInfo {
   id: string
@@ -29,7 +29,7 @@ const title = ref('')
 const description = ref('')
 const priority = ref<'high' | 'medium' | 'low' | ''>('')
 const selectedLabels = ref<string[]>([])
-const newLabelInput = ref('')
+
 
 const loadingConnectors = ref(true)
 const loadingSources = ref(false)
@@ -96,26 +96,10 @@ async function loadLabels(connectorId: string, sourceId: string) {
   }
 }
 
-function toggleLabel(name: string) {
-  const idx = selectedLabels.value.indexOf(name)
-  if (idx === -1) selectedLabels.value.push(name)
-  else selectedLabels.value.splice(idx, 1)
-}
-
-function addNewLabel() {
-  const name = newLabelInput.value.trim()
-  if (!name) return
+function onLabelCreate(name: string) {
   if (!availableLabels.value.some(l => l.name === name)) {
     availableLabels.value.push({ id: name, name })
   }
-  if (!selectedLabels.value.includes(name)) {
-    selectedLabels.value.push(name)
-  }
-  newLabelInput.value = ''
-}
-
-function onLabelKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter') { e.preventDefault(); addNewLabel() }
 }
 
 const needsSource = computed(() => selectedConnector.value?.capabilities.hasExplorer)
@@ -265,66 +249,15 @@ async function submit() {
             <!-- Labels -->
             <div v-if="selectedConnector.capabilities.canLabel">
               <label class="block text-xs mb-1.5 text-dt-body">Labels</label>
-
-              <AppSpinner v-if="loadingLabels" label="Loading labels…" size="size-3" />
-
-              <div v-else class="space-y-2">
-                <!-- Labels error -->
-                <div v-if="labelsError" class="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-md bg-dt-danger-bg text-dt-danger border border-dt-danger-bdr">
-                  <span>{{ labelsError }}</span>
-                  <button
-                    class="ml-2 underline shrink-0 text-dt-danger hover:text-white transition-colors"
-                    @click="loadLabels(selectedConnector.id, selectedSourceId)"
-                  >Retry</button>
-                </div>
-
-                <!-- Label chips -->
-                <div v-if="availableLabels.length > 0" class="flex flex-wrap gap-1.5">
-                  <button
-                    v-for="label in availableLabels"
-                    :key="label.name"
-                    class="transition-all"
-                    :class="selectedLabels.includes(label.name) ? 'opacity-100' : 'opacity-50 hover:opacity-80'"
-                    @click="toggleLabel(label.name)"
-                  >
-                    <LabelBadge :label="label" />
-                  </button>
-                </div>
-
-                <p
-                  v-else-if="!labelsError && (selectedSourceId || selectedConnector.id === 'local')"
-                  class="text-xs text-dt-dim"
-                >
-                  No labels found{{ selectedConnector.id !== 'local' ? ' in this repository' : '' }}.
-                </p>
-
-                <!-- New label input (local connector) -->
-                <div v-if="selectedConnector.id === 'local'" class="flex gap-2">
-                  <AppInputBox
-                    v-model="newLabelInput"
-                    placeholder="Add new label…"
-                    @keydown="onLabelKeydown"
-                  />
-                  <AppButton size="xs" variant="accent-outline" @click="addNewLabel">
-                    <PlusIcon class="size-3" /> Add
-                  </AppButton>
-                </div>
-
-                <!-- Selected labels summary -->
-                <div v-if="selectedLabels.length > 0" class="flex flex-wrap gap-1 pt-0.5">
-                  <span class="text-xs text-dt-dim">Selected:</span>
-                  <span
-                    v-for="l in selectedLabels"
-                    :key="l"
-                    class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-dt-accent-deep text-dt-accent"
-                  >
-                    {{ l }}
-                    <button class="hover:text-white transition-colors" @click="toggleLabel(l)">
-                      <XMarkIcon class="size-2.5" />
-                    </button>
-                  </span>
-                </div>
-              </div>
+              <AppLabelPicker
+                v-model="selectedLabels"
+                :labels="availableLabels"
+                :loading="loadingLabels"
+                :error="labelsError"
+                :can-create="selectedConnector.id === 'local'"
+                @retry="loadLabels(selectedConnector.id, selectedSourceId)"
+                @create="onLabelCreate"
+              />
             </div>
           </section>
 
