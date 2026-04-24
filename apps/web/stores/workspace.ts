@@ -1,17 +1,26 @@
 import { defineStore } from 'pinia'
-import type { TaskView } from '@dynamia-tasks/core'
+import { computed, ref } from 'vue'
+import type { TaskView, WorkspaceActiveTask } from '@dynamia-tasks/core'
+import { useApi } from '../composables/useApi'
 
 interface WorkspaceResponse {
   items: TaskView[]
+  activeTask: WorkspaceActiveTask | null
   cached?: boolean
 }
 
 export const useWorkspaceStore = defineStore('workspace', () => {
   const items = ref<TaskView[]>([])
+  const activeTask = ref<WorkspaceActiveTask | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
 
   const api = useApi()
+
+  function applyWorkspaceResponse(res: WorkspaceResponse) {
+    items.value = res.items
+    activeTask.value = res.activeTask ?? null
+  }
 
   async function load() {
     // Only show loading spinner on first load (no items yet)
@@ -19,7 +28,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     error.value = null
     try {
       const res = await api.get<WorkspaceResponse>('/api/workspace')
-      items.value = res.items
+      applyWorkspaceResponse(res)
     } catch (e: any) {
       error.value = e.message ?? 'Failed to load workspace'
     } finally {
@@ -36,7 +45,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
     try {
       const res = await api.post<WorkspaceResponse>('/api/workspace/add', { connectorId, taskId })
-      items.value = res.items
+      applyWorkspaceResponse(res)
     } catch {
       // Revert optimistic add
       if (optimisticTask) {
@@ -48,14 +57,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   async function removeTask(connectorId: string, taskId: string) {
     // Optimistic remove
     const prev = [...items.value]
+    const prevActive = activeTask.value
     items.value = items.value.filter(t => !(t.connectorId === connectorId && t.id === taskId))
+    if (activeTask.value?.connectorId === connectorId && activeTask.value.taskId === taskId) {
+      activeTask.value = null
+    }
 
     try {
       const encoded = encodeURIComponent(taskId)
       const res = await api.delete<WorkspaceResponse>(`/api/workspace/${connectorId}/${encoded}`)
-      items.value = res.items
+      applyWorkspaceResponse(res)
     } catch {
       items.value = prev
+      activeTask.value = prevActive
     }
   }
 
@@ -78,6 +92,33 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
+  const activeTaskKey = computed(() => {
+    if (!activeTask.value) return null
+    return `${activeTask.value.connectorId}:${activeTask.value.taskId}`
+  })
+
+  function isActive(task: TaskView): boolean {
+    return activeTaskKey.value === `${task.connectorId}:${task.id}`
+  }
+
+  async function setActiveTask(task: TaskView | null) {
+    const previous = activeTask.value
+    activeTask.value = task ? { connectorId: task.connectorId, taskId: task.id } : null
+
+    try {
+      const res = await api.patch<WorkspaceResponse>('/api/workspace/active', {
+        connectorId: task?.connectorId ?? null,
+        taskId: task?.id ?? null,
+      })
+      applyWorkspaceResponse(res)
+    } catch {
+      activeTask.value = previous
+    }
+  }
+
+  const completedCount = computed(() => items.value.filter(t => t.done).length)
+  const pendingCount = computed(() => items.value.length - completedCount.value)
+
   // Group by module/label/other
   const grouped = computed(() => {
     const groups: Record<string, TaskView[]> = {}
@@ -97,6 +138,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return 'other'
   }
 
-  return { items, loading, error, grouped, load, addTask, removeTask, toggleDone }
+  return {
+    items,
+    activeTask,
+    loading,
+    error,
+    grouped,
+    completedCount,
+    pendingCount,
+    load,
+    addTask,
+    removeTask,
+    toggleDone,
+    isActive,
+    setActiveTask,
+  }
 })
 

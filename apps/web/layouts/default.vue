@@ -1,18 +1,14 @@
 <template>
-  <div class="min-h-screen text-sm font-sans bg-dt-bg text-dt-text">
-
-    <!-- Sticky nav with backdrop blur -->
-    <nav class="sticky top-0 z-50 flex gap-5 items-center px-4 py-2.5 border-b border-dt-border bg-dt-surface/85 backdrop-blur-md">
-      <span class="text-xs font-semibold tracking-widest uppercase select-none text-dt-dim">dynamia</span>
-
-      <NuxtLink to="/"        class="nav-link" :class="{ 'nav-link--active': route.path === '/' }">workspace</NuxtLink>
-      <NuxtLink to="/explore" class="nav-link" :class="{ 'nav-link--active': route.path.startsWith('/explore') }">explore</NuxtLink>
-      <NuxtLink to="/settings"class="nav-link" :class="{ 'nav-link--active': route.path.startsWith('/settings') }">settings</NuxtLink>
-    </nav>
-
-    <main class="px-4 py-5">
+  <div class="min-h-screen text-sm font-sans bg-dt-bg text-dt-text flex flex-col">
+    <main class="flex-1 px-4 py-5 pb-24">
       <slot />
     </main>
+
+    <nav class="fixed bottom-0 left-0 right-0 z-50 flex items-center gap-2 px-3 py-2.5 border-t border-dt-border bg-dt-surface/92 backdrop-blur-md">
+      <NuxtLink to="/" class="nav-link" :class="{ 'nav-link--active': route.path === '/' || route.path.startsWith('/task') }">Workspace</NuxtLink>
+      <NuxtLink to="/explore" class="nav-link" :class="{ 'nav-link--active': route.path.startsWith('/explore') }">Explorer</NuxtLink>
+      <NuxtLink to="/settings" class="nav-link" :class="{ 'nav-link--active': route.path.startsWith('/settings') }">Settings</NuxtLink>
+    </nav>
   </div>
 </template>
 
@@ -22,9 +18,9 @@ const route = useRoute()
 
 <style scoped>
 .nav-link {
-  @apply text-sm text-dt-muted transition-colors hover:text-dt-text;
+  @apply flex-1 text-center text-xs py-2 rounded-md border border-transparent text-dt-muted transition-colors hover:text-dt-text hover:border-dt-border;
 }
 .nav-link--active {
-  @apply text-dt-text;
+  @apply text-dt-text bg-dt-raised border-dt-border;
 }
 </style>

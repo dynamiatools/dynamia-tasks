@@ -44,6 +44,68 @@ export class LocalConnector implements TaskConnector {
     return path.join(this.tasksDir, 'comments.json')
   }
 
+  private colorForLabel(name: string): string {
+    let hash = 0
+    for (let i = 0; i < name.length; i += 1) {
+      hash = ((hash << 5) - hash) + name.charCodeAt(i)
+      hash |= 0
+    }
+
+    const hue = Math.abs(hash) % 360
+    return this.hslToHex(hue, 52, 48)
+  }
+
+  private hslToHex(hue: number, saturation: number, lightness: number): string {
+    const sat = saturation / 100
+    const light = lightness / 100
+    const chroma = (1 - Math.abs(2 * light - 1)) * sat
+    const segment = hue / 60
+    const x = chroma * (1 - Math.abs(segment % 2 - 1))
+
+    let red = 0
+    let green = 0
+    let blue = 0
+
+    if (segment >= 0 && segment < 1) {
+      red = chroma
+      green = x
+    } else if (segment < 2) {
+      red = x
+      green = chroma
+    } else if (segment < 3) {
+      green = chroma
+      blue = x
+    } else if (segment < 4) {
+      green = x
+      blue = chroma
+    } else if (segment < 5) {
+      red = x
+      blue = chroma
+    } else {
+      red = chroma
+      blue = x
+    }
+
+    const match = light - chroma / 2
+    const toHex = (value: number) => Math.round((value + match) * 255).toString(16).padStart(2, '0')
+
+    return `${toHex(red)}${toHex(green)}${toHex(blue)}`
+  }
+
+  private normalizeLabel(label: TaskLabel): TaskLabel {
+    return {
+      ...label,
+      color: label.color ?? this.colorForLabel(label.name),
+    }
+  }
+
+  private normalizeTask(task: ConnectorTask): ConnectorTask {
+    return {
+      ...task,
+      labels: task.labels?.map(label => this.normalizeLabel(label)),
+    }
+  }
+
   async isConfigured(): Promise<boolean> {
     return true // always configured — no token needed
   }
@@ -71,7 +133,7 @@ export class LocalConnector implements TaskConnector {
       try {
         const raw = await fs.readFile(filePath, 'utf-8')
         const arr = JSON.parse(raw) as ConnectorTask[]
-        tasks.push(...arr)
+        tasks.push(...arr.map(task => this.normalizeTask(task)))
       } catch (e) {
         console.warn(`[connector-local] Skipping ${file}: invalid JSON`)
       }
@@ -145,7 +207,7 @@ export class LocalConnector implements TaskConnector {
     const result = await this.findTaskFile(id)
     const task = result?.tasks.find(t => t.id === id)
     if (!task) throw Object.assign(new Error(`Task not found: ${id}`), { code: 'TASK_NOT_FOUND' })
-    return task
+    return this.normalizeTask(task)
   }
 
   async createTask(newTask: NewTask): Promise<ConnectorTask> {
@@ -157,7 +219,7 @@ export class LocalConnector implements TaskConnector {
       description: newTask.description,
       done: false,
       module: newTask.module,
-      labels: newTask.labels?.map(l => ({ id: l, name: l })),
+      labels: newTask.labels?.map(l => this.normalizeLabel({ id: l, name: l })),
       priority: newTask.priority as ConnectorTask['priority'],
       createdAt: now,
       updatedAt: now,
@@ -185,13 +247,13 @@ export class LocalConnector implements TaskConnector {
       return {
         ...t,
         ...patch,
-        labels: patch.labels ? patch.labels.map(l => ({ id: l, name: l })) : t.labels,
+        labels: patch.labels ? patch.labels.map(l => this.normalizeLabel({ id: l, name: l })) : t.labels,
         updatedAt: new Date().toISOString(),
       }
     })
 
     await this.writeFile(result.file, updated)
-    return updated.find(t => t.id === id)!
+    return this.normalizeTask(updated.find(t => t.id === id)!)
   }
 
   async deleteTask(id: string): Promise<void> {
@@ -205,7 +267,7 @@ export class LocalConnector implements TaskConnector {
     const map = new Map<string, TaskLabel>()
     for (const task of tasks) {
       for (const label of task.labels ?? []) {
-        if (!map.has(label.name)) map.set(label.name, label)
+        if (!map.has(label.name)) map.set(label.name, this.normalizeLabel(label))
       }
     }
     return [...map.values()].sort((a, b) => a.name.localeCompare(b.name))

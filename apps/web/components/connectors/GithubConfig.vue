@@ -21,6 +21,9 @@ onMounted(async () => {
   const current = await configStore.getConnectorConfig('github') as Record<string, any>
   token.value = current?.token ?? ''
   selectedRepos.value = Array.isArray(current?.repos) ? current.repos : []
+  if (token.value) {
+    await loadRepos()
+  }
 })
 
 const groupedSources = computed(() => {
@@ -102,7 +105,7 @@ async function save() {
 </script>
 
 <template>
-  <div class="flex flex-col min-h-[calc(100vh-42px)]">
+  <div class="flex flex-col min-h-[320px]">
     <form @submit.prevent="save" class="flex-1 space-y-6 pb-16">
 
       <!-- ① Token -->
@@ -184,7 +187,7 @@ async function save() {
     </form>
 
     <!-- ③ Sticky save bar -->
-    <div class="sticky bottom-0 flex items-center gap-4 px-4 py-3 border-t border-dt-border bg-dt-surface/95 backdrop-blur-md">
+    <div class="sticky bottom-16 flex items-center gap-4 px-4 py-3 border border-dt-border rounded-md bg-dt-surface/95 backdrop-blur-md">
       <AppButton
         type="button"
         variant="ghost"

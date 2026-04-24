@@ -62,9 +62,15 @@ export interface WorkspaceItem {
   order: number
 }
 
+export interface WorkspaceActiveTask {
+  connectorId: string
+  taskId: string
+}
+
 export interface Workspace {
   projectPath: string
   items: WorkspaceItem[]
+  activeTask: WorkspaceActiveTask | null
 }
 
 // ── UI-only ───────────────────────────────────────────────────────────────────

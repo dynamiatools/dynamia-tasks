@@ -54,7 +54,7 @@
     "connectorId": "local",
     "title": "[UI] Build workspace checklist view",
     "description": "Grouped by module, toggleable done state, remove from workspace.",
-    "done": false,
+    "done": true,
     "labels": [
       {
         "id": "ui",
@@ -63,13 +63,13 @@
     ],
     "priority": "high",
     "createdAt": "2026-04-21T09:15:00Z",
-    "updatedAt": "2026-04-22T05:16:11.171Z"
+    "updatedAt": "2026-04-24T02:05:18.411Z"
   },
   {
     "id": "local-a1b2c3d4-0005-0000-0000-000000000005",
     "connectorId": "local",
     "title": "[UI] Build explorer — sources list + task list with filter",
-    "done": false,
+    "done": true,
     "labels": [
       {
         "id": "ui",
@@ -78,13 +78,13 @@
     ],
     "priority": "medium",
     "createdAt": "2026-04-21T09:20:00Z",
-    "updatedAt": "2026-04-22T05:30:39.797Z"
+    "updatedAt": "2026-04-24T02:06:13.798Z"
   },
   {
     "id": "local-a1b2c3d4-0006-0000-0000-000000000006",
     "connectorId": "local",
     "title": "[UI] Settings with auto-rendered connector config forms",
-    "done": false,
+    "done": true,
     "labels": [
       {
         "id": "ui",
@@ -93,7 +93,7 @@
     ],
     "priority": "medium",
     "createdAt": "2026-04-21T09:25:00Z",
-    "updatedAt": "2026-04-22T05:23:43.142Z"
+    "updatedAt": "2026-04-24T02:05:19.761Z"
   },
   {
     "id": "local-a1b2c3d4-0007-0000-0000-000000000007",
@@ -103,18 +103,18 @@
     "module": "server",
     "priority": "low",
     "createdAt": "2026-04-21T09:30:00Z",
-    "updatedAt": "2026-04-22T05:30:16.342Z"
+    "updatedAt": "2026-04-24T02:08:06.774Z"
   },
   {
     "id": "local-a1b2c3d4-0008-0000-0000-000000000008",
     "connectorId": "local",
     "title": "Implement VS Code extension",
     "description": "Server startup, webview panel, IDE callback server.",
-    "done": false,
+    "done": true,
     "module": "vscode",
     "priority": "medium",
     "createdAt": "2026-04-21T09:35:00Z",
-    "updatedAt": "2026-04-22T05:30:17.021Z"
+    "updatedAt": "2026-04-24T02:08:00.171Z"
   },
   {
     "id": "local-4a62f269-5744-42e0-9875-aa3d48a1b01d",
@@ -128,7 +128,7 @@
       }
     ],
     "createdAt": "2026-04-22T22:02:38.606Z",
-    "updatedAt": "2026-04-22T22:02:38.606Z"
+    "updatedAt": "2026-04-24T02:08:07.496Z"
   },
   {
     "id": "local-ad6ed162-2160-449f-a2a7-e5159e8d525e",
@@ -149,5 +149,25 @@
     "priority": "medium",
     "createdAt": "2026-04-23T20:11:54.951Z",
     "updatedAt": "2026-04-23T20:27:03.946Z"
+  },
+  {
+    "id": "local-47c8020f-d934-4392-a56a-83aeaa1ae743",
+    "connectorId": "local",
+    "title": "Otra tarea nuevaa",
+    "description": "sdasd",
+    "done": true,
+    "labels": [
+      {
+        "id": "infra",
+        "name": "infra"
+      },
+      {
+        "id": "ui",
+        "name": "ui"
+      }
+    ],
+    "priority": "medium",
+    "createdAt": "2026-04-24T01:25:16.041Z",
+    "updatedAt": "2026-04-24T02:06:15.231Z"
   }
 ]

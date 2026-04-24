@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { ChevronRightIcon, FolderIcon } from '@heroicons/vue/20/solid'
+
 const route = useRoute()
 const connectorId = route.params.connectorId as string
 const explorer = useExplorerStore()
 const connectors = useConnectorsStore()
+const connector = computed(() => connectors.find(connectorId))
 
 onMounted(async () => {
   await connectors.load()
@@ -11,7 +14,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div>
+  <div class="space-y-4">
     <AppBreadcrumb>
       <NuxtLink to="/explore" class="hover:text-dt-text transition-colors">explore</NuxtLink>
       <span class="flex items-center gap-1">
@@ -20,17 +23,37 @@ onMounted(async () => {
       </span>
     </AppBreadcrumb>
 
-    <AppSpinner v-if="explorer.loading" />
-    <p v-else-if="explorer.sources.length === 0" class="text-dt-dim text-sm">no sources found.</p>
-    <ul v-else class="space-y-1">
-      <li v-for="src in explorer.sources" :key="src.id">
-        <NuxtLink
-          :to="`/explore/${connectorId}/${encodeURIComponent(src.id)}`"
-          class="text-dt-text hover:text-white transition-colors"
+    <section class="rounded-lg border border-dt-border bg-dt-surface p-4">
+      <header class="flex items-center justify-between gap-3 mb-3 pb-3 border-b border-dt-border">
+        <p class="text-dt-text font-medium flex items-center gap-2 min-w-0">
+          <ConnectorIcon :connector-id="connectorId" :size="16" class="text-dt-text shrink-0" />
+          <span class="truncate">{{ connector?.name ?? connectorId }}</span>
+        </p>
+        <span class="text-[11px] px-2 py-1 rounded border text-dt-muted border-dt-border bg-dt-raised">
+          {{ explorer.sources.length }} sources
+        </span>
+      </header>
+
+      <AppSpinner v-if="explorer.loading" />
+      <p v-else-if="explorer.sources.length === 0" class="text-dt-dim text-sm">No sources found.</p>
+      <ul v-else class="space-y-2">
+        <li
+          v-for="src in explorer.sources"
+          :key="src.id"
+          class="rounded-md border border-dt-border bg-dt-raised/60"
         >
-          <span v-if="src.group" class="text-dt-dim">{{ src.group }}/</span>{{ src.name }}
-        </NuxtLink>
-      </li>
-    </ul>
+          <NuxtLink
+            :to="`/explore/${connectorId}/${encodeURIComponent(src.id)}`"
+            class="flex items-center gap-2.5 px-3 py-2 text-dt-text hover:text-white hover:bg-dt-raised transition-colors"
+          >
+            <FolderIcon class="size-3.5 text-dt-dim shrink-0" />
+            <span class="truncate">
+              <span v-if="src.group" class="text-dt-dim">{{ src.group }}/</span>{{ src.name }}
+            </span>
+            <ChevronRightIcon class="size-3 ml-auto text-dt-dim shrink-0" />
+          </NuxtLink>
+        </li>
+      </ul>
+    </section>
   </div>
 </template>
