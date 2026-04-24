@@ -1,4 +1,4 @@
 export default defineEventHandler(async () => {
-  await clearWorkspace(getProjectPath())
-  return resolveWorkspace(getProjectPath())
+    await clearWorkspace(getProjectPath())
+    return resolveWorkspace(getProjectPath())
 })
