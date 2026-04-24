@@ -32,6 +32,8 @@ const editTitle = ref('')
 const editDesc = ref('')
 const editLabels = ref<string[]>([])
 const lightboxImg = ref<string | null>(null)
+const showRemoveDialog = ref(false)
+const removingFromWorkspace = ref(false)
 
 // Try to find pre-cached task data from workspace or explorer stores
 function findCachedTask(): TaskView | null {
@@ -170,10 +172,33 @@ function extractComment(body: string) {
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
+
+async function confirmRemoveFromWorkspace() {
+  if (removingFromWorkspace.value) return
+  removingFromWorkspace.value = true
+  try {
+    await workspace.removeTask(connectorId, taskId)
+    showRemoveDialog.value = false
+  } finally {
+    removingFromWorkspace.value = false
+  }
+}
 </script>
 
 <template>
   <div>
+    <AppConfirmDialog
+      :open="showRemoveDialog"
+      title="Remove task from workspace?"
+      :message="task ? `Task: ${task.title}` : ''"
+      confirm-text="Remove Task"
+      cancel-text="Cancel"
+      confirm-variant="danger"
+      :loading="removingFromWorkspace"
+      @confirm="confirmRemoveFromWorkspace"
+      @cancel="showRemoveDialog = false"
+    />
+
     <!-- Breadcrumb: only when coming from explorer -->
     <AppBreadcrumb v-if="!fromWorkspace">
       <NuxtLink to="/explore" class="hover:text-dt-text transition-colors">explore</NuxtLink>
@@ -303,7 +328,7 @@ function formatDate(iso: string) {
           v-else
           size="xs"
           variant="danger"
-          @click="workspace.removeTask(connectorId, taskId)"
+          @click="showRemoveDialog = true"
         >
           <XMarkIcon class="size-3" /> remove from workspace
         </AppButton>

@@ -116,6 +116,51 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
+  async function reorderByKeys(orderedKeys: string[]) {
+    const prev = [...items.value]
+    const keySet = new Set(orderedKeys)
+    const byKey = new Map(items.value.map(task => [`${task.connectorId}:${task.id}`, task]))
+
+    const ordered = orderedKeys
+      .map(key => byKey.get(key))
+      .filter((task): task is TaskView => Boolean(task))
+
+    // Keep tasks not present in payload at the end to avoid accidental data loss.
+    const rest = items.value.filter(task => !keySet.has(`${task.connectorId}:${task.id}`))
+    items.value = [...ordered, ...rest]
+
+    try {
+      const payloadItems = items.value.map((task, order) => ({
+        connectorId: task.connectorId,
+        taskId: task.id,
+        order,
+      }))
+
+      const res = await api.patch<WorkspaceResponse>('/api/workspace/reorder', {
+        items: payloadItems,
+      })
+      applyWorkspaceResponse(res)
+    } catch {
+      items.value = prev
+    }
+  }
+
+  async function clearAllTasks() {
+    const prev = [...items.value]
+    const prevActive = activeTask.value
+
+    items.value = []
+    activeTask.value = null
+
+    try {
+      const res = await api.delete<WorkspaceResponse>('/api/workspace/clear')
+      applyWorkspaceResponse(res)
+    } catch {
+      items.value = prev
+      activeTask.value = prevActive
+    }
+  }
+
   const completedCount = computed(() => items.value.filter(t => t.done).length)
   const pendingCount = computed(() => items.value.length - completedCount.value)
 
@@ -150,6 +195,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     addTask,
     removeTask,
     toggleDone,
+    reorderByKeys,
+    clearAllTasks,
     isActive,
     setActiveTask,
   }

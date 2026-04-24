@@ -60,3 +60,4 @@ web/dist/
 .dynamia/
 .intellijPlatform/
 .kotlin/
+.output/

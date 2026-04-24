@@ -63,7 +63,7 @@
     ],
     "priority": "high",
     "createdAt": "2026-04-21T09:15:00Z",
-    "updatedAt": "2026-04-24T02:05:18.411Z"
+    "updatedAt": "2026-04-24T02:31:45.149Z"
   },
   {
     "id": "local-a1b2c3d4-0005-0000-0000-000000000005",
@@ -99,11 +99,11 @@
     "id": "local-a1b2c3d4-0007-0000-0000-000000000007",
     "connectorId": "local",
     "title": "Add offline cache layer to server",
-    "done": false,
+    "done": true,
     "module": "server",
     "priority": "low",
     "createdAt": "2026-04-21T09:30:00Z",
-    "updatedAt": "2026-04-24T02:08:06.774Z"
+    "updatedAt": "2026-04-24T02:33:36.239Z"
   },
   {
     "id": "local-a1b2c3d4-0008-0000-0000-000000000008",
@@ -114,13 +114,13 @@
     "module": "vscode",
     "priority": "medium",
     "createdAt": "2026-04-21T09:35:00Z",
-    "updatedAt": "2026-04-24T02:08:00.171Z"
+    "updatedAt": "2026-04-24T02:32:03.721Z"
   },
   {
     "id": "local-4a62f269-5744-42e0-9875-aa3d48a1b01d",
     "connectorId": "local",
     "title": "Send test task",
-    "done": false,
+    "done": true,
     "labels": [
       {
         "id": "feat",
@@ -128,7 +128,7 @@
       }
     ],
     "createdAt": "2026-04-22T22:02:38.606Z",
-    "updatedAt": "2026-04-24T02:08:07.496Z"
+    "updatedAt": "2026-04-24T02:33:20.617Z"
   },
   {
     "id": "local-ad6ed162-2160-449f-a2a7-e5159e8d525e",
@@ -169,5 +169,47 @@
     "priority": "medium",
     "createdAt": "2026-04-24T01:25:16.041Z",
     "updatedAt": "2026-04-24T02:06:15.231Z"
+  },
+  {
+    "id": "local-0a18c310-d920-48e4-bf88-47d167a88c61",
+    "connectorId": "local",
+    "title": "task 1",
+    "done": true,
+    "createdAt": "2026-04-24T02:34:33.941Z",
+    "updatedAt": "2026-04-24T02:35:22.917Z"
+  },
+  {
+    "id": "local-6dd4bb6c-5e7f-4372-a7b8-978a90fac4bf",
+    "connectorId": "local",
+    "title": "Task 2",
+    "done": true,
+    "createdAt": "2026-04-24T02:34:43.624Z",
+    "updatedAt": "2026-04-24T02:35:23.524Z"
+  },
+  {
+    "id": "local-7f30eeb1-53bf-40c2-ac61-068814d2fdb3",
+    "connectorId": "local",
+    "title": "task 3",
+    "description": "asdasdasd",
+    "done": false,
+    "createdAt": "2026-04-24T02:34:55.143Z",
+    "updatedAt": "2026-04-24T02:34:55.143Z"
+  },
+  {
+    "id": "local-bc86aa75-82fb-484f-8376-84b826e2df5f",
+    "connectorId": "local",
+    "title": "task 3",
+    "done": true,
+    "createdAt": "2026-04-24T02:36:31.320Z",
+    "updatedAt": "2026-04-24T02:37:20.372Z"
+  },
+  {
+    "id": "local-b1a58d9c-959f-4559-b56d-385041203207",
+    "connectorId": "local",
+    "title": "task 5",
+    "description": "asdasdasd",
+    "done": false,
+    "createdAt": "2026-04-24T02:39:25.824Z",
+    "updatedAt": "2026-04-24T02:39:25.824Z"
   }
 ]

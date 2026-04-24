@@ -129,7 +129,7 @@ async function submit() {
     try {
       await api.post('/api/workspace/add', { connectorId: created.connectorId, taskId: created.id })
     } catch { /* non-fatal */ }
-    await router.push(`/task/${created.connectorId}/${encodeURIComponent(created.id)}`)
+    await router.push('/')
   } catch (e: any) {
     error.value = e?.data?.message ?? e?.message ?? 'Failed to create task'
     submitting.value = false

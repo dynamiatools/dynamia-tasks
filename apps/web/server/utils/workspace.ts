@@ -81,6 +81,13 @@ export async function reorderWorkspace(projectPath: string, items: WorkspaceItem
   await writeWorkspace(ws)
 }
 
+export async function clearWorkspace(projectPath: string): Promise<void> {
+  const ws = await readWorkspace(projectPath)
+  ws.items = []
+  ws.activeTask = null
+  await writeWorkspace(ws)
+}
+
 export async function setActiveWorkspaceTask(projectPath: string, activeTask: WorkspaceActiveTask | null): Promise<void> {
   const ws = await readWorkspace(projectPath)
 
