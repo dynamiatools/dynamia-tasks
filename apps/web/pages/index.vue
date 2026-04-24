@@ -293,7 +293,7 @@ function cancelRemoveTask() {
     </Transition>
 
     <!-- Header -->
-    <div class="sticky top-0 z-20 -mx-4 mb-5 border-b border-dt-border bg-dt-bg/95 px-4 py-3 backdrop-blur-md">
+    <div class="sticky top-0 z-20 -mx-4 mb-5 bg-dt-bg/95 px-3 py-1 backdrop-blur-md">
       <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-2 min-w-0">
         <AppSectionLabel mb="mb-0">Workspace</AppSectionLabel>
@@ -390,17 +390,6 @@ function cancelRemoveTask() {
               @drop="onItemDrop($event, task, group)"
               @dragend="resetDragState"
             >
-              <button
-                type="button"
-                class="mt-0.5 shrink-0 rounded p-1 text-dt-border opacity-0 transition-all group-hover/task:opacity-100 hover:text-dt-text hover:bg-dt-raised focus-visible:opacity-100"
-                title="Drag to reorder inside this group"
-                draggable="false"
-                @mousedown.stop="onHandlePointerDown(task)"
-                @touchstart.stop="onHandlePointerDown(task)"
-              >
-                <Bars3Icon class="size-3.5" />
-              </button>
-
               <!-- done toggle -->
               <button
                 class="mt-0.5 shrink-0 transition-colors"
@@ -440,13 +429,26 @@ function cancelRemoveTask() {
                 <p v-if="prefs.showDescription && task.description" class="text-[11px] text-dt-dim mt-1 line-clamp-2 leading-relaxed">{{ task.description }}</p>
               </div>
 
-              <button
-                class="text-dt-border hover:text-dt-danger transition-colors shrink-0 mt-0.5"
-                @click="requestRemoveTask(task)"
-                title="Remove from workspace"
-              >
-                <XMarkIcon class="size-3" />
-              </button>
+              <!-- right actions column: remove (top) + drag handle (bottom) -->
+              <div class="shrink-0 flex flex-col items-center justify-between self-stretch gap-1">
+                <button
+                  class="text-dt-border hover:text-dt-danger transition-colors"
+                  @click="requestRemoveTask(task)"
+                  title="Remove from workspace"
+                >
+                  <XMarkIcon class="size-3" />
+                </button>
+                <button
+                  type="button"
+                  class="cursor-grab rounded px-0.5 py-0.5 text-dt-dim opacity-0 transition-all group-hover/task:opacity-50 hover:!opacity-100 hover:text-dt-text focus-visible:opacity-100"
+                  title="Drag to reorder inside this group"
+                  draggable="false"
+                  @mousedown.stop="onHandlePointerDown(task)"
+                  @touchstart.stop="onHandlePointerDown(task)"
+                >
+                  <Bars3Icon class="size-3" />
+                </button>
+              </div>
             </li>
           </TransitionGroup>
         </div>
@@ -470,17 +472,6 @@ function cancelRemoveTask() {
           @drop="onFlatItemDrop($event, task)"
           @dragend="resetDragState"
         >
-          <button
-            type="button"
-            class="mt-0.5 shrink-0 rounded p-1 text-dt-border opacity-0 transition-all group-hover/task:opacity-100 hover:text-dt-text hover:bg-dt-raised focus-visible:opacity-100"
-            title="Drag to reorder"
-            draggable="false"
-            @mousedown.stop="onHandlePointerDown(task)"
-            @touchstart.stop="onHandlePointerDown(task)"
-          >
-            <Bars3Icon class="size-3.5" />
-          </button>
-
           <!-- done toggle -->
           <button
             class="mt-0.5 shrink-0 transition-colors"
@@ -520,13 +511,26 @@ function cancelRemoveTask() {
             <p v-if="prefs.showDescription && task.description" class="text-[11px] text-dt-dim mt-1 line-clamp-2 leading-relaxed">{{ task.description }}</p>
           </div>
 
-          <button
-            class="text-dt-border hover:text-dt-danger transition-colors shrink-0 mt-0.5"
-            @click="requestRemoveTask(task)"
-            title="Remove from workspace"
-          >
-            <XMarkIcon class="size-3" />
-          </button>
+          <!-- right actions column: remove (top) + drag handle (bottom) -->
+          <div class="shrink-0 flex flex-col items-center justify-between self-stretch gap-1">
+            <button
+              class="text-dt-border hover:text-dt-danger transition-colors"
+              @click="requestRemoveTask(task)"
+              title="Remove from workspace"
+            >
+              <XMarkIcon class="size-3" />
+            </button>
+            <button
+              type="button"
+              class="cursor-grab rounded px-0.5 py-0.5 text-dt-dim opacity-0 transition-all group-hover/task:opacity-50 hover:!opacity-100 hover:text-dt-text focus-visible:opacity-100"
+              title="Drag to reorder"
+              draggable="false"
+              @mousedown.stop="onHandlePointerDown(task)"
+              @touchstart.stop="onHandlePointerDown(task)"
+            >
+              <Bars3Icon class="size-3" />
+            </button>
+          </div>
         </li>
       </TransitionGroup>
     </div>

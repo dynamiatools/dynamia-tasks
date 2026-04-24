@@ -4,7 +4,7 @@
       <slot />
     </main>
 
-    <nav class="fixed bottom-0 left-0 right-0 z-50 flex items-center gap-2 px-3 py-2.5 border-t border-dt-border bg-dt-surface/92 backdrop-blur-md">
+    <nav class="fixed bottom-0 left-0 right-0 z-50 flex items-center gap-2 px-3 py-2.5 bg-dt-surface/92 backdrop-blur-md">
       <NuxtLink to="/" class="nav-link" :class="{ 'nav-link--active': route.path === '/' || route.path.startsWith('/task') }">Workspace</NuxtLink>
       <NuxtLink to="/explore" class="nav-link" :class="{ 'nav-link--active': route.path.startsWith('/explore') }">Explorer</NuxtLink>
       <NuxtLink to="/settings" class="nav-link" :class="{ 'nav-link--active': route.path.startsWith('/settings') }">Settings</NuxtLink>
