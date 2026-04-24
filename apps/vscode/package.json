@@ -2,7 +2,7 @@
   "name": "dynamia-tasks",
   "displayName": "Dynamia Tasks",
   "description": "Manage GitHub Issues and local tasks without leaving VS Code — no cloud, no accounts, just focus.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "publisher": "DynamiaTools",
   "repository": {
     "type": "git",
@@ -14,7 +14,9 @@
     "vscode": "^1.90.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Productivity",
+    "Task Management"
   ],
   "icon": "assets/icon.png",
   "main": "./dist/extension.js",

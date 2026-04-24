@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen text-sm font-sans bg-dt-bg text-dt-text flex flex-col">
+  <div class="min-h-screen font-sans bg-dt-bg text-dt-text flex flex-col" :class="prefs.smallFonts ? 'text-xs' : 'text-sm'">
     <main class="flex-1 px-4 py-5 pb-24">
       <slot />
     </main>
@@ -14,6 +14,8 @@
 
 <script setup lang="ts">
 const route = useRoute()
+const prefs = usePreferencesStore()
+onMounted(() => prefs.load())
 </script>
 
 <style scoped>

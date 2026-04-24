@@ -89,6 +89,11 @@ function applyMode(mode: 'zen' | 'dev' | 'default') {
               <span class="text-sm text-dt-text">Compact mode</span>
               <span class="text-xs text-dt-dim">— reduced spacing between tasks</span>
             </label>
+            <label class="flex items-center gap-2.5 cursor-pointer select-none">
+              <input type="checkbox" v-model="prefs.smallFonts" @change="prefs.persist()" class="accent-dt-accent" />
+              <span class="text-sm text-dt-text">Small fonts</span>
+              <span class="text-xs text-dt-dim">— smaller text for a more compact look</span>
+            </label>
           </div>
         </div>
       </div>

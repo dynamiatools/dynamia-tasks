@@ -8,6 +8,7 @@ export const usePreferencesStore = defineStore('preferences', () => {
     const compactMode = ref(false)
     const showOrigin = ref(true)
     const showDescription = ref(false)
+    const smallFonts = ref(false)
 
     function load() {
         if (!process.client) return
@@ -20,6 +21,7 @@ export const usePreferencesStore = defineStore('preferences', () => {
             if (typeof p.compactMode === 'boolean') compactMode.value = p.compactMode
             if (typeof p.showOrigin === 'boolean') showOrigin.value = p.showOrigin
             if (typeof p.showDescription === 'boolean') showDescription.value = p.showDescription
+            if (typeof p.smallFonts === 'boolean') smallFonts.value = p.smallFonts
         } catch { }
     }
 
@@ -31,8 +33,9 @@ export const usePreferencesStore = defineStore('preferences', () => {
             compactMode: compactMode.value,
             showOrigin: showOrigin.value,
             showDescription: showDescription.value,
+            smallFonts: smallFonts.value,
         }))
     }
 
-    return { autoGroups, showLabels, compactMode, showOrigin, showDescription, load, persist }
+    return { autoGroups, showLabels, compactMode, showOrigin, showDescription, smallFonts, load, persist }
 })

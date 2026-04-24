@@ -69,7 +69,7 @@ async function save() {
       </span>
     </AppBreadcrumb>
 
-    <section class="rounded-lg border border-dt-border bg-dt-surface p-4">
+    <section class=" p-4">
       <header class="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-dt-border">
         <p class="text-dt-text font-medium flex items-center gap-2 min-w-0">
           <ConnectorIcon :connector-id="connectorId" :size="16" class="text-dt-text shrink-0" />
@@ -133,8 +133,8 @@ async function save() {
             </template>
 
             <div class="flex gap-4 items-center pt-1">
-              <AppButton type="submit" :loading="saving" variant="ghost">
-                {{ saving ? 'saving…' : 'save' }}
+              <AppButton type="submit"  :loading="saving" variant="primary">
+                {{ saving ? 'saving…' : 'Save' }}
               </AppButton>
               <span v-if="saved" class="text-xs text-dt-accent">saved ✓</span>
             </div>

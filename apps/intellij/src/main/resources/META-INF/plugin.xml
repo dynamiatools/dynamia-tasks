@@ -4,25 +4,22 @@
     <vendor email="hello@dynamia.tools" url="https://dynamia.tools">Dynamia Tools</vendor>
 
     <description><![CDATA[
-        <h2>Dynamia Tasks 🗂️ — Your dev task manager, living inside your IDE</h2>
+        <p>Dynamia Tasks is your developer task manager, living inside your IDE.
+        Stop context-switching between browser tabs, issue trackers, and sticky notes.
+        Dynamia Tasks brings all your tasks into a single, distraction-free panel
+        right where you work — inside IntelliJ IDEA.</p>
 
-        <p>
-            Stop context-switching between browser tabs, issue trackers, and sticky notes.
-            <b>Dynamia Tasks</b> brings all your tasks into a single, distraction-free panel
-            right where you work — inside IntelliJ IDEA.
-        </p>
-
-        <h3>✨ What it does</h3>
+        <h3>What it does</h3>
         <ul>
-            <li>📋 <b>Unified task list</b> — merges GitHub Issues, local task files, and any custom source into one clean checklist per project.</li>
-            <li>🔍 <b>Task Explorer</b> — browse, search, and cherry-pick tasks from any connector without leaving the IDE.</li>
-            <li>⚡ <b>Workspace checklist</b> — pin only the tasks you're working on now. Your personal sprint, per project.</li>
-            <li>📂 <b>Open files from tasks</b> — jump directly to the relevant file mentioned in a task description with one click.</li>
-            <li>🔌 <b>Connector system</b> — plug in GitHub Issues out of the box, use local JSON task files, or connect any third-party tool with a custom connector.</li>
-            <li>🏷️ <b>Labels &amp; filtering</b> — keep things organised with labels, status filters, and grouping.</li>
+            <li><b>Unified task list</b> — merges GitHub Issues, local task files, and any custom source into one clean checklist per project.</li>
+            <li><b>Task Explorer</b> — browse, search, and cherry-pick tasks from any connector without leaving the IDE.</li>
+            <li><b>Workspace checklist</b> — pin only the tasks you're working on now. Your personal sprint, per project.</li>
+            <li><b>Open files from tasks</b> — jump directly to the relevant file mentioned in a task description with one click.</li>
+            <li><b>Connector system</b> — plug in GitHub Issues out of the box, use local JSON task files, or connect any third-party tool with a custom connector.</li>
+            <li><b>Labels and filtering</b> — keep things organised with labels, status filters, and grouping.</li>
         </ul>
 
-        <h3>🐙 GitHub Issues integration</h3>
+        <h3>GitHub Issues integration</h3>
         <p>
             Connect any public or private GitHub repository and manage its issues directly from IntelliJ IDEA.
             You can view, create, edit, comment, and close issues without ever opening a browser tab.
@@ -31,17 +28,17 @@
             To enable it, generate a <b>GitHub Personal Access Token (classic)</b> with the <code>repo</code> scope
             (or <code>public_repo</code> for public repositories only) at
             <a href="https://github.com/settings/tokens">github.com/settings/tokens</a>,
-            then paste it in <b>Settings → Dynamia Tasks → GitHub Issues → Personal Access Token</b>.
+            then paste it in <b>Settings &rarr; Dynamia Tasks &rarr; GitHub Issues &rarr; Personal Access Token</b>.
             The token is stored locally on your machine and never sent to any external server.
         </p>
 
-        <h3>🔒 Privacy-first, always</h3>
+        <h3>Privacy-first, always</h3>
         <p>
             <b>No cloud. No telemetry. No accounts.</b><br/>
             Everything runs locally on your machine. Your tasks, your tokens, your data — 100% offline capable.
         </p>
 
-        <h3>🚀 Get started in seconds</h3>
+        <h3>Get started in seconds</h3>
         <ol>
             <li>Open a project in IntelliJ IDEA.</li>
             <li>Click the <b>Dynamia Tasks</b> icon in the right tool window.</li>
@@ -52,8 +49,8 @@
         <p><i>Built for developers who like their tools minimal, fast, and out of the way.</i></p>
     ]]></description>
 
-    <!-- Compatible with IntelliJ-based IDEs 2025.1+ -->
-    <idea-version since-build="251"/>
+    <!-- Compatible with IntelliJ-based IDEs 2025.1+ (no upper bound) -->
+    <idea-version since-build="251" until-build=""/>
 
     <depends>com.intellij.modules.platform</depends>
 

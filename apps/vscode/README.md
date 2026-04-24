@@ -1,69 +1,62 @@
-# VS Code Extension — `apps/vscode`
+# Dynamia Tasks for VS Code
 
-## Responsibility
+> Your tasks, your IDE, your rules. Manage GitHub Issues & local tasks without leaving VS Code — no cloud, no accounts, just focus.
 
-This extension integrates Dynamia Tasks into VS Code as a side panel (WebviewPanel).
 
-## What It Does
+---
 
-1. On activation, starts `packages/server` as an embedded Node process **without** `--port`, letting the CLI auto-select the first free port from `7842`. The actual port is discovered by:
-   - Parsing the stdout line `✓ dynamia-tasks server running on http://localhost:<PORT>`
-   - Or reading `~/.dynamiatasks/instances/<sha1(projectPath)[0..12]>.json` → field `port`
-2. Starts an IDE callback HTTP server on an auto-selected port (starting from 7843) and passes `--ide-callback http://127.0.0.1:<callbackPort>` to the Node server.
-3. Opens a `WebviewPanel` with an `<iframe>` pointing to `http://localhost:<PORT>` (discovered in step 1).
-4. Injects `window.__dynamia_host = 'vscode'` into the panel HTML. The SPA uses `window.location.origin` as its API base — no port is hardcoded in the frontend.
-5. Serves the static output of `apps/web` (`apps/web/.output/public/`) bundled with the extension.
+## What is Dynamia Tasks?
 
-## Callback IDE Contract
+Dynamia Tasks is a task manager that lives **inside your editor**. Instead of switching between browser tabs, Jira boards, or sticky notes, you get a clean task panel right in VS Code — always visible, always in context.
 
-The IDE callback server listens on an **auto-selected free port** (starting from 7843). The port is passed to the Node server via `--ide-callback http://127.0.0.1:<callbackPort>`.
+Everything runs **locally on your machine**. No cloud, no telemetry, no accounts required.
 
-```
-POST http://127.0.0.1:<callbackPort>/ide/open-file
-Body: { "path": "/absolute/path/file.ts", "line": 42 }
-→ opens the file in the editor via vscode.workspace.openTextDocument + showTextDocument
+---
 
-POST http://127.0.0.1:<callbackPort>/ide/notify
-Body: { "type": "info|warning|error|success", "message": "..." }
-→ calls vscode.window.showInformationMessage / showErrorMessage / showWarningMessage
-```
+## Features
 
-## Stack
+- 📋 **Unified task list** — see GitHub Issues and local tasks together in one panel.
+- ⚡ **Workspace checklist** — pin only the tasks you're actively working on. Your personal sprint, per project.
+- 🔍 **Task Explorer** — browse and pick tasks from any connected source without leaving VS Code.
+- 📂 **Open files from tasks** — jump to the relevant file mentioned in a task with a single click.
+- 🏷️ **Labels & filters** — filter by status, label, or assignee to stay focused.
+- 🔌 **Extensible** — works with GitHub Issues out of the box. Local JSON task files require zero configuration.
 
-- TypeScript + `vsce` for packaging
-- Entry: `src/extension.ts`
-- Exports: `activate(context)` and `deactivate()`
+---
 
-## Build
+## Getting Started
 
-```bash
-# 1. Build the SPA
-pnpm build:web
+1. Install the extension from the VS Code Marketplace.
+2. Open any project folder.
+3. Click the **Dynamia Tasks** icon in the Activity Bar (left sidebar).
+4. Start adding local tasks immediately — no setup needed.
 
-# 2. Build the extension
-cd apps/vscode
-pnpm build
+---
 
-# 3. Package
-vsce package
-```
+## Connecting GitHub Issues
 
-## Dependencies
+To manage GitHub Issues from VS Code:
 
-- `@dynamia-tasks/server` (workspace:*)
-- `@dynamia-tasks/core` (workspace:*)
-- `vscode` (peer, provided by the IDE)
+1. Go to **Settings** (gear icon inside the Dynamia Tasks panel).
+2. Select the **GitHub Issues** connector.
+3. Enter your repository (e.g. `owner/repo`).
+4. Paste a **GitHub Personal Access Token** with the `repo` scope.
+   - Generate one at [github.com/settings/tokens](https://github.com/settings/tokens) → *Personal access tokens (classic)* → scope: `repo` (or `public_repo` for public repos only).
+5. Save — your issues will appear in the panel instantly.
 
-## Expected Structure
+Your token is stored locally and never leaves your machine.
 
-```
-apps/vscode/
-├── package.json
-├── tsconfig.json
-├── src/
-│   ├── extension.ts        # activate / deactivate
-│   └── callbackServer.ts   # HTTP listener on auto-selected port
-└── dist/
-    └── web/                # copy of apps/web/.output/public/
-```
+---
 
+## Privacy
+
+- ✅ No cloud backend
+- ✅ No analytics or telemetry
+- ✅ No account or login required
+- ✅ All data stays on your machine
+
+---
+
+## Feedback & Issues
+
+Found a bug or have a feature request? Open an issue on [GitHub](https://github.com/dynamiatools/dynamia-tasks/issues).

@@ -1,63 +1,68 @@
-# IntelliJ Plugin — `apps/intellij`
+# Dynamia Tasks for IntelliJ IDEA
 
-## Responsibility
+> Your tasks, your IDE, your rules. Manage GitHub Issues & local tasks without leaving IntelliJ — no cloud, no accounts, just focus.
 
-This plugin integrates Dynamia Tasks into IntelliJ IDEA as a Tool Window with a JCEF panel.
+---
 
-## What It Does
+## What is Dynamia Tasks?
 
-1. `DynamiaTasksPlugin.kt` — `StartupActivity`: resolves `project.basePath`, launches `NodeServerManager`
-2. `NodeServerManager.kt` — runs `node packages/server/dist/cli.js` as a child process via `ProcessBuilder`:
-   ```kotlin
-   // Do NOT pass --port: the CLI auto-selects the first free port from 7842.
-   // The actual port is persisted in ~/.dynamiatasks/instances/<hash>.json
-   // and exposed at GET /api/instance once the server is up.
-   ProcessBuilder(
-     "node", serverBundlePath,
-     "--cwd", project.basePath ?: homePath,
-     "--ide-callback", "http://127.0.0.1:<callbackPort>"
-   ).start()
-   ```
-   After launching the process, read the actual port using one of these methods (in order of preference):
-   - **Stdout**: parse the line `✓ dynamia-tasks server running on http://localhost:<PORT>` from the process output.
-   - **Instance file**: read `~/.dynamiatasks/instances/<sha1(projectPath)[0..12]>.json` → field `port`.
-   - **Endpoint**: `GET http://localhost:<PORT>/api/instance` (requires knowing the port first; useful for verification).
-3. `IdeCallbackServer.kt` — embedded HTTP server on an auto-selected port (starting from 7843):
-   - `POST /ide/open-file` → `OpenFileDescriptor(project, file, line).navigate(true)`
-   - `POST /ide/notify` → `Notifications.Bus.notify(Notification(...))`
-4. `DynamiaTasksWindowFactory.kt` — creates the Tool Window
-5. `DynamiaTasksPanel.kt` — JCEF Browser pointing to `http://localhost:<PORT>` (discovered in step 2), injects `window.__dynamia_host = 'intellij'` via `executeJavaScript` before page load. The SPA uses `window.location.origin` as its API base — no port is hardcoded in the frontend.
+Dynamia Tasks is a task manager that lives **inside IntelliJ IDEA**. Instead of switching between browser tabs, issue trackers, or sticky notes, you get a clean task panel right in your IDE — always visible, always in context.
 
-## Stack
+Everything runs **locally on your machine**. No cloud, no telemetry, no accounts required.
 
-- Kotlin + Gradle + IntelliJ Platform Plugin SDK
-- `plugin.xml` declares: `toolWindow`, `applicationService`, `postStartupActivity`
-- Minimum IDE version: 2024.1
+---
 
-## Build
+## Features
 
-```bash
-cd apps/intellij
-./gradlew buildPlugin
-```
+- 📋 **Unified task list** — see GitHub Issues and local tasks together in one panel.
+- ⚡ **Workspace checklist** — pin only the tasks you're actively working on. Your personal sprint, per project.
+- 🔍 **Task Explorer** — browse and pick tasks from any connected source without leaving the IDE.
+- 📂 **Open files from tasks** — jump to the relevant file mentioned in a task with a single click.
+- 🏷️ **Labels & filters** — filter by status, label, or assignee to stay focused.
+- 🔌 **Extensible** — works with GitHub Issues out of the box. Local JSON task files require zero configuration.
 
-## Expected Structure
+---
 
-```
-apps/intellij/
-├── build.gradle.kts
-├── settings.gradle.kts
-├── gradle.properties
-├── src/main/
-│   ├── kotlin/com/dynamia/tasks/
-│   │   ├── DynamiaTasksPlugin.kt
-│   │   ├── DynamiaTasksWindowFactory.kt
-│   │   ├── DynamiaTasksPanel.kt
-│   │   └── server/
-│   │       ├── NodeServerManager.kt
-│   │       └── IdeCallbackServer.kt
-│   └── resources/
-│       └── META-INF/plugin.xml
-└── src/main/resources/
-    └── web/               # copy of apps/web/.output/public/
-```
+## Getting Started
+
+1. Install the plugin from the [JetBrains Marketplace](https://plugins.jetbrains.com).
+2. Open any project in IntelliJ IDEA.
+3. Click the **Dynamia Tasks** icon in the right tool window bar.
+4. Start adding local tasks immediately — no setup needed.
+
+---
+
+## Connecting GitHub Issues
+
+To manage GitHub Issues from IntelliJ IDEA:
+
+1. Go to **Settings** (gear icon inside the Dynamia Tasks panel).
+2. Select the **GitHub Issues** connector.
+3. Enter your repository (e.g. `owner/repo`).
+4. Paste a **GitHub Personal Access Token** with the `repo` scope.
+   - Generate one at [github.com/settings/tokens](https://github.com/settings/tokens) → *Personal access tokens (classic)* → scope: `repo` (or `public_repo` for public repos only).
+5. Save — your issues will appear in the panel instantly.
+
+Your token is stored locally and never leaves your machine.
+
+---
+
+## Compatibility
+
+- IntelliJ IDEA 2025.1 or later
+- Other JetBrains IDEs based on the IntelliJ Platform (WebStorm, PyCharm, GoLand, etc.)
+
+---
+
+## Privacy
+
+- ✅ No cloud backend
+- ✅ No analytics or telemetry
+- ✅ No account or login required
+- ✅ All data stays on your machine
+
+---
+
+## Feedback & Issues
+
+Found a bug or have a feature request? Open an issue on [GitHub](https://github.com/dynamiatools/dynamia-tasks/issues).

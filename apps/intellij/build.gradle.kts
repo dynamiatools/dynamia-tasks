@@ -39,7 +39,8 @@ intellijPlatform {
         name = providers.gradleProperty("pluginName")
         version = providers.gradleProperty("pluginVersion")
         ideaVersion {
-            sinceBuild = "251"   // 2025.1
+            sinceBuild = "251"        // 2025.1 minimum
+            untilBuild = provider { null } // no upper bound → compatible with all future versions
         }
     }
 
