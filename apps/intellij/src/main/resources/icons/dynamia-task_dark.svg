@@ -1,0 +1,17 @@
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Container -->
+    <rect x="3" y="3" width="18" height="18" rx="4"
+          stroke="#CED0D6" stroke-width="1.2"/>
+
+    <!-- Lines -->
+    <path d="M11 8H17" stroke="#CED0D6" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M11 16H17" stroke="#CED0D6" stroke-width="1.2" stroke-linecap="round"/>
+
+    <!-- Check 1 -->
+    <path d="M6.5 8L7.7 9.2L10 7" stroke="#CED0D6" stroke-width="1.2"
+          stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Check 2 -->
+    <path d="M6.5 16L7.7 17.2L10 15" stroke="#CED0D6" stroke-width="1.2"
+          stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

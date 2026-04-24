@@ -76,28 +76,42 @@ class NodeServerManager(
         // Read stdout in a separate daemon thread to avoid blocking the caller
         val future = CompletableFuture<Int>()
         val readerThread = Thread({
+            val reader = proc.inputStream.bufferedReader()
+            var handedOff = false
             try {
-                proc.inputStream.bufferedReader().use { reader ->
-                    var line: String?
-                    while (reader.readLine().also { line = it } != null) {
-                        val l = line!!
-                        outputLines.add(l)
-                        log.info("server> $l")
-                        val port = portRegex.find(l)?.groupValues?.get(1)?.toIntOrNull()
-                        if (port != null) {
-                            future.complete(port)
-                            // Keep draining stdout in background so the process doesn't block
-                            Thread({ reader.forEachLine { log.info("server> $it") } }, "dynamia-server-log-tail")
-                                .also { it.isDaemon = true }.start()
-                            return@use
-                        }
+                var line: String?
+                while (reader.readLine().also { line = it } != null) {
+                    val l = line!!
+                    outputLines.add(l)
+                    log.info("server> $l")
+                    val port = portRegex.find(l)?.groupValues?.get(1)?.toIntOrNull()
+                    if (port != null) {
+                        future.complete(port)
+                        handedOff = true
+                        // Keep draining stdout in background so the process doesn't block.
+                        // The tail thread takes ownership of the reader and closes it when done.
+                        Thread({
+                            try {
+                                reader.forEachLine { log.info("server> $it") }
+                            } catch (e: Exception) {
+                                if (proc.isAlive) log.warn("DynamiaTasks: log-tail error", e)
+                            } finally {
+                                runCatching { reader.close() }
+                            }
+                        }, "dynamia-server-log-tail")
+                            .also { it.isDaemon = true }.start()
+                        break
                     }
+                }
+                if (!handedOff) {
                     // Stream ended without finding port
                     log.warn("DynamiaTasks: server stdout ended. Output:\n${outputLines.joinToString("\n")}")
                     if (!future.isDone) future.complete(null)
                 }
             } catch (e: Exception) {
                 if (!future.isDone) future.completeExceptionally(e)
+            } finally {
+                if (!handedOff) runCatching { reader.close() }
             }
         }, "dynamia-server-reader")
         readerThread.isDaemon = true
@@ -318,16 +332,60 @@ class NodeServerManager(
     }
 
     /**
-     * Extracts the /nuxt-output/ tree from the JAR to a temp directory so that
-     * cli.mjs can find .output/server/index.mjs at a predictable relative path.
+     * Returns a cache key combining the plugin version and the JAR's last-modified timestamp.
+     * Returns null when running from an exploded-resources directory (sandbox / runIde), meaning
+     * no caching should be applied and files should always be re-extracted.
+     */
+    private fun buildCacheKey(): String? {
+        val version = NodeServerManager::class.java.`package`?.implementationVersion ?: "dev"
+        val jarFile = runCatching {
+            File(NodeServerManager::class.java.protectionDomain.codeSource.location.toURI())
+        }.getOrNull()
+        return if (jarFile != null && jarFile.isFile) "${version}-${jarFile.lastModified()}" else null
+    }
+
+    /**
+     * Extracts the /nuxt-output/ tree from the JAR (or build directory) to a temp directory
+     * so that cli.mjs can find .output/server/index.mjs at a predictable relative path.
+     *
+     * - JAR mode   : uses a content-stable key (version + JAR last-modified) so the same
+     *                build is never extracted twice but a new build always re-extracts.
+     * - Sandbox mode (file:// URL): cacheKey is null → temp dir is always wiped and
+     *                re-populated, guaranteeing the latest build resources are used.
      */
     private fun extractNuxtOutputToTemp() {
-        val version = NodeServerManager::class.java.`package`?.implementationVersion ?: "dev"
-        val destDir = File(System.getProperty("java.io.tmpdir"), "dynamia-tasks-$version")
+        val cacheKey = buildCacheKey()
 
-        if (File(destDir, ".output/server/index.mjs").exists()) {
+        // Resolve (or create) the destination directory
+        val destDir = if (cacheKey != null) {
+            File(System.getProperty("java.io.tmpdir"), "dynamia-tasks-$cacheKey")
+        } else {
+            // Sandbox / dev mode: no stable key → always use a fixed "dev" dir and wipe it
+            File(System.getProperty("java.io.tmpdir"), "dynamia-tasks-dev-sandbox")
+        }
+
+        // In cached (JAR) mode: skip extraction when the marker file already exists
+        if (cacheKey != null && File(destDir, ".output/server/index.mjs").exists()) {
             log.info("DynamiaTasks: reusing extracted Nuxt output at ${destDir.absolutePath}")
             return
+        }
+
+        // Clean up stale extraction directories from previous builds to avoid wasting disk space
+        File(System.getProperty("java.io.tmpdir")).listFiles { f ->
+            f.isDirectory && f.name.startsWith("dynamia-tasks-") && f.name != destDir.name
+        }?.forEach { stale ->
+            log.info("DynamiaTasks: removing stale extraction dir ${stale.absolutePath}")
+            stale.deleteRecursively()
+        }
+
+        // In sandbox mode wipe only the .output sub-directory so we always use the latest
+        // Nuxt build assets, but leave cli.mjs (placed by extractToTemp) untouched.
+        if (cacheKey == null) {
+            val outputDir = File(destDir, ".output")
+            if (outputDir.exists()) {
+                log.info("DynamiaTasks: sandbox mode — wiping previous .output at ${outputDir.absolutePath}")
+                outputDir.deleteRecursively()
+            }
         }
 
         log.info("DynamiaTasks: extracting Nuxt output to ${destDir.absolutePath}")
@@ -377,9 +435,11 @@ class NodeServerManager(
     }
 
     private fun extractToTemp(resourcePath: String, fileName: String): String {
-        val version = NodeServerManager::class.java.`package`?.implementationVersion ?: "dev"
-        val destFile = File(System.getProperty("java.io.tmpdir"), "dynamia-tasks-$version/$fileName")
-        if (!destFile.exists()) {
+        val cacheKey = buildCacheKey()
+        val dirName = if (cacheKey != null) "dynamia-tasks-$cacheKey" else "dynamia-tasks-dev-sandbox"
+        val destFile = File(System.getProperty("java.io.tmpdir"), "$dirName/$fileName")
+        // In sandbox mode (no cacheKey) always overwrite so the latest resource is used
+        if (!destFile.exists() || cacheKey == null) {
             destFile.parentFile.mkdirs()
             NodeServerManager::class.java.getResourceAsStream("/$resourcePath")!!
                 .use { i -> destFile.outputStream().use { o -> i.copyTo(o) } }

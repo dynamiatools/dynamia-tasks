@@ -8,6 +8,9 @@ import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
+import org.cef.callback.CefContextMenuParams
+import org.cef.callback.CefMenuModel
+import org.cef.handler.CefContextMenuHandlerAdapter
 import org.cef.handler.CefLoadHandlerAdapter
 import tools.dynamia.tasks.server.NodeServerRegistry
 import java.awt.BorderLayout
@@ -126,6 +129,18 @@ class DynamiaTasksPanel(
                     log.warn("DynamiaTasks: JCEF load error [$errorCode] $errorText → $failedUrl")
                     showPlaceholder("Connecting to Dynamia Tasks server…")
                 }
+            }
+        }, jbBrowser.cefBrowser)
+
+        // Disable the native browser right-click context menu
+        jbBrowser.jbCefClient.addContextMenuHandler(object : CefContextMenuHandlerAdapter() {
+            override fun onBeforeContextMenu(
+                browser: CefBrowser,
+                frame: CefFrame,
+                params: CefContextMenuParams,
+                model: CefMenuModel,
+            ) {
+                model.clear()
             }
         }, jbBrowser.cefBrowser)
 

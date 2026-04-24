@@ -26,8 +26,9 @@
             id="DynamiaTasks"
             anchor="right"
             factoryClass="tools.dynamia.tasks.DynamiaTasksWindowFactory"
-            icon="/icons/dynamia-tasks-13.svg"
+            icon="/icons/dynamia-task.svg"
             doNotActivateOnStart="true"
+            stripeTitle="Dynamia Tasks"
         />
 
         <!-- Notification group for IDE callbacks -->
