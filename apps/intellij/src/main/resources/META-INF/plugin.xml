@@ -42,14 +42,13 @@
             serviceImplementation="tools.dynamia.tasks.server.NodeServerRegistry"
         />
 
+        <!-- Modern startup hook (ProjectActivity replaces deprecated ProjectManagerListener) -->
+        <postStartupActivity
+            implementation="tools.dynamia.tasks.DynamiaTasksStartupListener"
+        />
+
     </extensions>
 
-    <projectListeners>
-        <listener
-            class="tools.dynamia.tasks.DynamiaTasksStartupListener"
-            topic="com.intellij.openapi.project.ProjectManagerListener"
-        />
-    </projectListeners>
 
 </idea-plugin>
 

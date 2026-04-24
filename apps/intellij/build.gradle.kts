@@ -29,7 +29,6 @@ dependencies {
 
         // JCEF is bundled — no extra dependency needed
         bundledPlugin("com.intellij.platform.images") // lightweight, keeps deps minimal
-        instrumentationTools()
         pluginVerifier()
         testFramework(TestFrameworkType.Platform)
     }
@@ -62,35 +61,35 @@ intellijPlatform {
     }
 }
 
-// ── Copy Nuxt full-stack output into plugin resources ────────────────────────
+// ── Copy Nuxt full-stack output into generated plugin resources ───────────────
 // Nuxt build produces:
 //   .output/server/  → Nitro server bundle (index.mjs + chunks/)
 //   .output/public/  → Static SPA assets (served by Nitro automatically)
 // We also bundle cli.mjs (the port-discovery launcher) separately.
+//
+// Resources are written to build/generated-resources/ (NOT src/main/resources)
+// so that generated artefacts never pollute the source tree.
 val nuxtOutputDir = file("${rootProject.projectDir}/../../apps/web/.output")
 val nuxtCliFile   = file("${rootProject.projectDir}/../../apps/web/cli.mjs")
+val generatedResources = layout.buildDirectory.dir("generated-resources")
 
 tasks.register<Copy>("copyNuxtOutput") {
     from(nuxtOutputDir)
-    into(layout.projectDirectory.dir("src/main/resources/nuxt-output"))
+    into(generatedResources.map { it.dir("nuxt-output") })
     onlyIf { nuxtOutputDir.exists() }
 }
 
 tasks.register<Copy>("copyCliLauncher") {
     from(nuxtCliFile)
-    into(layout.projectDirectory.dir("src/main/resources/server"))
+    into(generatedResources.map { it.dir("server") })
     onlyIf { nuxtCliFile.exists() }
 }
 
+// Register the generated directory as a resource source set so that
+// processResources picks it up and includes it in the plugin JAR.
+sourceSets["main"].resources.srcDir(generatedResources)
+
 tasks.named("processResources") {
-    dependsOn("copyNuxtOutput", "copyCliLauncher")
-}
-
-tasks.named("prepareSandbox") {
-    dependsOn("copyNuxtOutput", "copyCliLauncher")
-}
-
-tasks.named("buildPlugin") {
     dependsOn("copyNuxtOutput", "copyCliLauncher")
 }
 

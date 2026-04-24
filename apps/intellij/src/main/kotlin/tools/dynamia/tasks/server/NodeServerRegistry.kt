@@ -21,9 +21,19 @@ class NodeServerRegistry {
         val port: Int,
     )
 
-    private val log      = thisLogger()
-    private val entries  = ConcurrentHashMap<String, Entry>()
+    /** Structured error reported when bootstrap fails. */
+    data class BootstrapError(
+        val message: String,
+        val cause: Throwable?,
+        /** Human-readable diagnostic lines shown in the error panel. */
+        val diagnostics: List<String>,
+    )
+
+    private val log       = thisLogger()
+    private val entries   = ConcurrentHashMap<String, Entry>()
     private val listeners = ConcurrentHashMap<String, CopyOnWriteArrayList<(Int) -> Unit>>()
+    private val errors    = ConcurrentHashMap<String, BootstrapError>()
+    private val errListeners = ConcurrentHashMap<String, CopyOnWriteArrayList<(BootstrapError) -> Unit>>()
 
     fun register(
         project: Project,
@@ -32,6 +42,7 @@ class NodeServerRegistry {
         port: Int,
     ) {
         val key = projectKey(project)
+        errors.remove(key)
         entries[key] = Entry(manager, callbackServer, port)
         log.info("DynamiaTasks: registered project $key on port $port")
 
@@ -39,10 +50,22 @@ class NodeServerRegistry {
         listeners.remove(key)?.forEach { it(port) }
     }
 
+    fun reportError(project: Project, error: BootstrapError) {
+        val key = projectKey(project)
+        errors[key] = error
+        log.warn("DynamiaTasks: bootstrap error for $key — ${error.message}")
+
+        errListeners.remove(key)?.forEach {
+            ApplicationManager.getApplication().invokeLater { it(error) }
+        }
+    }
+
     fun serverPort(project: Project): Int? = entries[projectKey(project)]?.port
+    fun serverError(project: Project): BootstrapError? = errors[projectKey(project)]
 
     fun stop(project: Project) {
         val key   = projectKey(project)
+        errors.remove(key)
         val entry = entries.remove(key) ?: return
         entry.manager.stop()
         entry.callbackServer.stop()
@@ -60,6 +83,20 @@ class NodeServerRegistry {
             return
         }
         listeners.getOrPut(key) { CopyOnWriteArrayList() }.add(callback)
+    }
+
+    /**
+     * Registers a one-shot callback invoked on the EDT if bootstrap fails.
+     * If the error is already known, calls the callback immediately.
+     */
+    fun onError(project: Project, callback: (BootstrapError) -> Unit) {
+        val key = projectKey(project)
+        val err = errors[key]
+        if (err != null) {
+            ApplicationManager.getApplication().invokeLater { callback(err) }
+            return
+        }
+        errListeners.getOrPut(key) { CopyOnWriteArrayList() }.add(callback)
     }
 
     private fun projectKey(project: Project): String =
