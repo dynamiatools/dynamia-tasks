@@ -1,9 +1,14 @@
 {
-  "name": "@dynamia-tasks/vscode",
+  "name": "dynamia-tasks",
   "displayName": "Dynamia Tasks",
-  "description": "Developer-first task manager — GitHub Issues, local tasks, and more in a single panel.",
-  "version": "1.0.0",
-  "publisher": "dynamia-tools",
+  "description": "Manage GitHub Issues and local tasks without leaving VS Code — no cloud, no accounts, just focus.",
+  "version": "1.0.1",
+  "publisher": "DynamiaTools",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dynamiatools/dynamia-tasks"
+  },
+  "license": "MIT",
   "private": true,
   "engines": {
     "vscode": "^1.90.0"
