@@ -52,11 +52,21 @@ class DynamiaTasksPanel(
                 BorderLayout.CENTER,
             )
         } else {
-            initialiseBrowser()
             when {
-                initialError != null -> showError(initialError)
-                initialPort  != null -> load(initialPort)
-                else                 -> showPlaceholder("Starting Dynamia Tasks server…")
+                initialError != null -> {
+                    initialiseBrowser()
+                    showError(initialError)
+                }
+                initialPort != null -> {
+                    initialiseBrowser()
+                    load(initialPort)
+                }
+                else -> {
+                    // Browser will be initialised lazily in load() once the port arrives.
+                    // Do NOT call initialiseBrowser() here — showPlaceholder() would remove
+                    // the browser component and load() would find it detached from the panel.
+                    showPlaceholder("Starting Dynamia Tasks server…")
+                }
             }
         }
     }
@@ -68,10 +78,14 @@ class DynamiaTasksPanel(
         SwingUtilities.invokeLater {
             val url = "http://localhost:$port"
             log.info("DynamiaTasks: loading SPA at $url")
-            browser?.loadURL(url) ?: run {
-                initialiseBrowser()
-                browser?.loadURL(url)
-            }
+            if (browser == null) initialiseBrowser()
+            val b = browser ?: return@invokeLater
+            // Always re-attach the browser component — a placeholder may have replaced it
+            component.removeAll()
+            component.add(b.component, BorderLayout.CENTER)
+            component.revalidate()
+            component.repaint()
+            b.loadURL(url)
         }
     }
 

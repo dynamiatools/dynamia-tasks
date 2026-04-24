@@ -300,19 +300,28 @@ class NodeServerManager(
     private fun resolveServerBundle(): String {
         val home = System.getProperty("user.home")
 
-        // 1. Monorepo dev — prefer the live cli.mjs so changes are picked up immediately
+        // 1. Monorepo dev — prefer the live cli.mjs so changes are picked up immediately.
+        //    NOTE: The hardcoded home-path candidate is checked first and INDEPENDENTLY of
+        //    codeSourcePath, because in IntelliJ sandbox (runIde) the plugin ClassLoader does
+        //    not expose a usable codeSource, making codeSourcePath null and causing the whole
+        //    block to be skipped (defaulting to the bundled — potentially stale — resources).
+        val liveByHome = File(home, "IdeaProjects/dynamia-tasks/apps/web/cli.mjs").canonicalFile
+        if (liveByHome.exists()) {
+            log.info("DynamiaTasks: using live cli.mjs at ${liveByHome.absolutePath}")
+            return liveByHome.absolutePath
+        }
+
+        // Relative-path candidates from the class code-source (works when running from
+        // build/classes/kotlin/main in a standard Gradle layout).
         val codeSourcePath = runCatching {
             File(NodeServerManager::class.java.protectionDomain.codeSource.location.toURI())
         }.getOrNull()
         if (codeSourcePath != null) {
             val candidates = listOf(
-                // Running from build/classes/kotlin/main inside the monorepo
                 File(codeSourcePath, "../../../../apps/web/cli.mjs"),
                 File(codeSourcePath, "../../../../../apps/web/cli.mjs"),
                 File(codeSourcePath.parentFile, "../../../../apps/web/cli.mjs"),
                 File(codeSourcePath.parentFile, "../../../../../apps/web/cli.mjs"),
-                // Absolute monorepo location based on home
-                File(home, "IdeaProjects/dynamia-tasks/apps/web/cli.mjs"),
             )
             val live = candidates.map { it.canonicalFile }.firstOrNull { it.exists() }
             if (live != null) {
