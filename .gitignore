@@ -48,5 +48,10 @@ out/
 .DS_Store
 Thumbs.db
 
+.nuxt/
 .nuxt/*
 .output/*
+web/dist/
+web/.nuxt/
+web/.output/
+web/dist/
