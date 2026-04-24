@@ -14,9 +14,7 @@
     "vscode": "^1.90.0"
   },
   "categories": [
-    "Other",
-    "Productivity",
-    "Task Management"
+    "Other"
   ],
   "icon": "assets/icon.png",
   "main": "./dist/extension.js",
