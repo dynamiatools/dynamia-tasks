@@ -55,3 +55,8 @@ web/dist/
 web/.nuxt/
 web/.output/
 web/dist/
+.tasks/
+.idea/
+.dynamia/
+.intellijplatform/
+.kotlin/
