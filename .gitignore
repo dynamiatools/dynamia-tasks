@@ -58,5 +58,5 @@ web/dist/
 .tasks/
 .idea/
 .dynamia/
-.intellijplatform/
+.intellijPlatform/
 .kotlin/
