@@ -9,6 +9,7 @@
     "build:web": "pnpm --filter @dynamia-tasks/web build",
     "build:all": "pnpm -r build",
     "build:intellij": "pnpm build:all && cd apps/intellij && ./gradlew buildPlugin",
+    "build:vscode": "pnpm build:web && pnpm --filter @dynamia-tasks/vscode build",
     "start": "pnpm --filter @dynamia-tasks/web start",
     "test": "pnpm -r test"
   },

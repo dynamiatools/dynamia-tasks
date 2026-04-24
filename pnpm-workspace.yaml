@@ -2,3 +2,9 @@ packages:
   - 'packages/*'
   - 'apps/*'
 
+onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - '@vscode/vsce-sign'
+  - esbuild
+  - keytar
+

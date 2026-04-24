@@ -4,8 +4,8 @@
           stroke="#CED0D6" stroke-width="1.2"/>
 
     <!-- Lines -->
-    <path d="M11 8H17" stroke="#CED0D6" stroke-width="1.2" stroke-linecap="round"/>
-    <path d="M11 16H17" stroke="#CED0D6" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M13 8H17" stroke="#CED0D6" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M13 16H17" stroke="#CED0D6" stroke-width="1.2" stroke-linecap="round"/>
 
     <!-- Check 1 -->
     <path d="M6.5 8L7.7 9.2L10 7" stroke="#CED0D6" stroke-width="1.2"

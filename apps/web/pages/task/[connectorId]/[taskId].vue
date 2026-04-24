@@ -451,14 +451,14 @@ async function confirmRemoveFromWorkspace() {
               :loading="postingComment"
               :disabled="!newComment.trim()"
               @click="submitCommentAndFinish"
-            >send &amp; close</AppButton>
+            >Comment &amp; Close</AppButton>
             <AppButton
               size="xs"
               variant="accent-outline"
               :loading="postingComment"
               :disabled="!newComment.trim()"
               @click="submitComment"
-            >send</AppButton>
+            >Comment</AppButton>
           </div>
         </div>
       </div>

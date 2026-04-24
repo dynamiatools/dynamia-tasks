@@ -1,0 +1,68 @@
+{
+  "name": "@dynamia-tasks/vscode",
+  "displayName": "Dynamia Tasks",
+  "description": "Developer-first task manager — GitHub Issues, local tasks, and more in a single panel.",
+  "version": "1.0.0",
+  "publisher": "dynamia-tools",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "icon": "assets/icon.png",
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "dynamia-tasks.open",
+        "title": "Open Dynamia Tasks",
+        "category": "Dynamia Tasks"
+      },
+      {
+        "command": "dynamia-tasks.restart",
+        "title": "Restart Server",
+        "category": "Dynamia Tasks"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "dynamia-tasks-sidebar",
+          "title": "Dynamia Tasks",
+          "icon": "assets/icon-activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "dynamia-tasks-sidebar": [
+        {
+          "type": "webview",
+          "id": "dynamia-tasks.view",
+          "name": "Dynamia Tasks"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --watch",
+    "package": "vsce package --no-dependencies",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.4.5"
+  }
+}
+
+
