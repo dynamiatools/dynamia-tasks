@@ -30,6 +30,7 @@ const search = ref('')
 const newLabel = ref('')
 const triggerRef = ref<HTMLElement | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
+const openUpward = ref(false)
 
 // ── Filtered list ─────────────────────────────────────────────────────────────
 const filtered = computed(() => {
@@ -84,8 +85,37 @@ function onClickOutside(e: MouseEvent) {
   }
 }
 
+function updatePanelDirection() {
+  if (!open.value || !triggerRef.value || !panelRef.value) return
+
+  const triggerRect = triggerRef.value.getBoundingClientRect()
+  const panelHeight = panelRef.value.offsetHeight || 280
+  const spaceBelow = window.innerHeight - triggerRect.bottom
+  const spaceAbove = triggerRect.top
+
+  // Open upward when there is not enough room below and there is more room above.
+  openUpward.value = spaceBelow < panelHeight + 8 && spaceAbove > spaceBelow
+}
+
+watch(open, async (isOpen) => {
+  if (isOpen) {
+    await nextTick()
+    updatePanelDirection()
+    window.addEventListener('resize', updatePanelDirection)
+    window.addEventListener('scroll', updatePanelDirection, true)
+    return
+  }
+
+  window.removeEventListener('resize', updatePanelDirection)
+  window.removeEventListener('scroll', updatePanelDirection, true)
+})
+
 onMounted(() => document.addEventListener('mousedown', onClickOutside))
-onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
+onUnmounted(() => {
+  document.removeEventListener('mousedown', onClickOutside)
+  window.removeEventListener('resize', updatePanelDirection)
+  window.removeEventListener('scroll', updatePanelDirection, true)
+})
 </script>
 
 <template>
@@ -135,7 +165,8 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
       <div
         v-if="open"
         ref="panelRef"
-        class="absolute z-50 mt-1 w-full min-w-[220px] rounded-md border border-dt-border bg-dt-surface shadow-xl shadow-black/40 overflow-hidden"
+        class="absolute z-50 w-full min-w-[220px] rounded-md border border-dt-border bg-dt-surface shadow-xl shadow-black/40 overflow-hidden"
+        :class="openUpward ? 'bottom-full mb-1' : 'top-full mt-1'"
       >
         <!-- Error -->
         <div v-if="error" class="px-3 py-2 flex items-center justify-between gap-2 bg-dt-danger-bg border-b border-dt-danger-bdr">

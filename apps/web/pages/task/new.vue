@@ -138,7 +138,7 @@ async function submit() {
 </script>
 
 <template>
-  <div class="max-w-xl mx-auto space-y-6">
+  <div class="max-w-xl mx-auto space-y-6 pb-20">
     <!-- Back + Title -->
     <div class="flex items-center gap-3">
       <NuxtLink to="/" class="text-dt-muted hover:text-dt-text transition-colors" title="Back to workspace">
@@ -165,7 +165,7 @@ async function submit() {
               : 'bg-dt-raised text-dt-text border-dt-border hover:border-dt-accent'"
             @click="selectedConnector = c"
           >
-            <span class="text-base leading-none">{{ c.icon }}</span>
+            <ConnectorIcon :connector-id="c.id" :size="16" class="shrink-0" />
             <span class="font-medium">{{ c.name }}</span>
             <TaskStatusIcon v-if="selectedConnector?.id === c.id" :done="true" size="size-3.5 ml-auto" />
           </button>
