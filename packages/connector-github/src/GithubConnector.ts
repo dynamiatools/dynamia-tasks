@@ -82,7 +82,7 @@ export class GithubConnector implements TaskConnector {
           type: 'password',
           required: true,
           placeholder: 'ghp_...',
-          helpText: 'GitHub PAT with repo scope',
+          helpText: 'GitHub PAT with private repo access (classic: repo, fine-grained: Metadata + Issues)',
         },
       ],
     }
@@ -171,7 +171,14 @@ export class GithubConnector implements TaskConnector {
         // GitHub issues endpoint returns PRs too — filter them out
         results.push(...issues.filter(i => !(i as any).pull_request).map(i => this.toTask(i, owner, repo)))
       } catch (e) {
-        console.warn(`[connector-github] fetchTasks failed for ${owner}/${repo}:`, (e as Error).message)
+        const message = (e as Error).message
+        // If the explorer requested a single source, surface the error instead of returning a misleading empty list.
+        if (filter?.sourceId) {
+          throw new Error(
+            `Unable to load issues for ${owner}/${repo}. ${message}. Check token access to private repos (classic: repo, fine-grained: Metadata + Issues).`
+          )
+        }
+        console.warn(`[connector-github] fetchTasks failed for ${owner}/${repo}:`, message)
       }
     }
     return results
@@ -334,7 +341,9 @@ export class GithubConnector implements TaskConnector {
         }
       }
     } else {
-      const repos = await fetchAllPages('/user/repos?sort=updated&affiliation=owner,collaborator,organization_member')
+      const repos = await fetchAllPages(
+        '/user/repos?sort=updated&type=all&visibility=all&affiliation=owner,collaborator,organization_member'
+      )
       repos.forEach(r => sources.push({ id: r.full_name, name: r.name, group: r.owner.login }))
     }
 

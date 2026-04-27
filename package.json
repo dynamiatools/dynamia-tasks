@@ -7,8 +7,8 @@
     "dev:web": "pnpm --filter @dynamia-tasks/web dev",
     "build": "pnpm --filter @dynamia-tasks/web build",
     "build:web": "pnpm --filter @dynamia-tasks/web build",
-    "build:intellij": "pnpm build:all && cd apps/intellij && ./gradlew buildPlugin",
-    "build:vscode": "pnpm build:all && pnpm --filter dynamia-tasks build && pnpm --filter dynamia-tasks package",
+    "build:intellij": "pnpm build && cd apps/intellij && ./gradlew buildPlugin",
+    "build:vscode": "pnpm build && pnpm --filter dynamia-tasks build && pnpm --filter dynamia-tasks package",
     "test": "pnpm -r test"
   },
   "devDependencies": {

@@ -82,10 +82,6 @@
             isLogByDefault="true"
         />
 
-        <!-- Application-level service holds the per-project server map -->
-        <applicationService
-            serviceImplementation="tools.dynamia.tasks.server.NodeServerRegistry"
-        />
 
         <!-- Modern startup hook (ProjectActivity replaces deprecated ProjectManagerListener) -->
         <postStartupActivity

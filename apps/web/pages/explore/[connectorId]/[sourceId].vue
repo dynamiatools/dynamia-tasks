@@ -102,6 +102,10 @@ const inWorkspace = (taskId: string) =>
 
     <AppSpinner v-if="explorer.loading" />
 
+    <div v-else-if="explorer.error" class="text-xs text-dt-danger space-y-1">
+      <p>{{ explorer.error }}</p>
+    </div>
+
     <div v-else-if="explorer.filteredTasks.length === 0" class="text-xs text-dt-dim space-y-1">
       <p>{{ explorer.query || explorer.selectedLabels.length ? 'no tasks match the current filters.' : 'no tasks found.' }}</p>
       <button

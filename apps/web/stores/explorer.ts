@@ -5,6 +5,7 @@ export const useExplorerStore = defineStore('explorer', () => {
   const sources = ref<ConnectorSource[]>([])
   const tasks = ref<ConnectorTask[]>([])
   const loading = ref(false)
+  const error = ref('')
   const query = ref('')
   const status = ref<'open' | 'closed' | 'all'>('open')
   const selectedLabels = ref<string[]>([])
@@ -37,10 +38,12 @@ export const useExplorerStore = defineStore('explorer', () => {
 
   async function loadSources(connectorId: string) {
     loading.value = true
+    error.value = ''
     try {
       sources.value = await svc.fetchSources(connectorId)
-    } catch {
+    } catch (e: any) {
       sources.value = []
+      error.value = e?.message ?? 'failed to load sources'
     } finally {
       loading.value = false
     }
@@ -48,14 +51,16 @@ export const useExplorerStore = defineStore('explorer', () => {
 
   async function loadTasks(connectorId: string, filter?: Record<string, unknown>) {
     loading.value = true
+    error.value = ''
     try {
       const taskFilter: TaskFilter = {
         sourceId: filter?.sourceId as string | undefined,
         status: status.value,
       }
       tasks.value = await svc.fetchTasks(connectorId, taskFilter)
-    } catch {
+    } catch (e: any) {
       tasks.value = []
+      error.value = e?.message ?? 'failed to load tasks'
     } finally {
       loading.value = false
     }
@@ -64,6 +69,7 @@ export const useExplorerStore = defineStore('explorer', () => {
   function reset() {
     sources.value = []
     tasks.value = []
+    error.value = ''
     query.value = ''
     status.value = 'open'
     selectedLabels.value = []
@@ -76,6 +82,7 @@ export const useExplorerStore = defineStore('explorer', () => {
     availableLabels,
     selectedLabels,
     loading,
+    error,
     query,
     status,
     loadSources,
