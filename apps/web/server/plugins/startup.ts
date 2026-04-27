@@ -9,8 +9,8 @@ export default defineNitroPlugin(async () => {
 
   // Configure LocalConnector with the project path
   try {
-    const local = getConnector('local')
-    await local.configure({ projectPath })
+    const localConnector = getConnector('local')
+    await localConnector.configure({ projectPath })
   } catch { /* ignore if not found */ }
 
   // Re-configure all connectors from saved config
@@ -25,7 +25,7 @@ export default defineNitroPlugin(async () => {
   } catch { /* ignore */ }
 
   // Write instance file so IDE plugins can discover the port
-  await writeInstancePort(projectPath, port)
+  const instance = await writeInstancePort(projectPath, port)
 
   // Clean up on graceful shutdown
   const cleanup = async () => {
@@ -35,6 +35,7 @@ export default defineNitroPlugin(async () => {
   process.once('SIGINT', cleanup)
   process.once('SIGTERM', cleanup)
 
+  console.log(`DT_INSTANCE_READY ${JSON.stringify(instance)}`)
   // ⚠ This exact line format is parsed by NodeServerManager.kt for port discovery
   console.log(`✓ dynamia-tasks server running on http://localhost:${port}`)
   console.log(`  projectPath: ${projectPath}`)

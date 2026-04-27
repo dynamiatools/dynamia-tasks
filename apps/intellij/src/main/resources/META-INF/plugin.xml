@@ -49,6 +49,15 @@
         <p><i>Built for developers who like their tools minimal, fast, and out of the way.</i></p>
     ]]></description>
 
+    <change-notes><![CDATA[
+        <h3>Version 1.0.3</h3>
+        <ul>
+            <li>Improved IntelliJ startup flow to initialize Dynamia Tasks more reliably after project load.</li>
+            <li>Enhanced embedded server lifecycle handling and project-to-server registry stability.</li>
+            <li>General UX and performance refinements across the tool window integration.</li>
+        </ul>
+    ]]></change-notes>
+
     <!-- Compatible with IntelliJ-based IDEs 2025.1+ (no upper bound) -->
     <idea-version since-build="251" until-build=""/>
 

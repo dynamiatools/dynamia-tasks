@@ -3,6 +3,8 @@ package tools.dynamia.tasks.server
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
 import java.net.ServerSocket
 import java.security.MessageDigest
 import java.util.concurrent.CompletableFuture
@@ -21,6 +23,8 @@ class NodeServerManager(
     private val callbackUrl: String,
 ) {
     private val log = thisLogger()
+    private val defaultStartTimeoutMs = 60_000L
+    private val readyPrefix = "DT_INSTANCE_READY "
 
     private var process: Process? = null
 
@@ -70,11 +74,14 @@ class NodeServerManager(
     // ── port discovery ────────────────────────────────────────────────────────
 
     private fun readPortFromProcess(proc: Process, projectPath: String): Int? {
-        val portRegex = Regex("""server running on http://localhost:(\d+)""")
+        val portRegexes = listOf(
+            Regex("""server running on http://(?:localhost|127\.0\.0\.1):(\d+)""", RegexOption.IGNORE_CASE),
+            Regex("""listening on http://(?:localhost|127\.0\.0\.1|\[::\]|0\.0\.0\.0):(\d+)""", RegexOption.IGNORE_CASE),
+        )
         val outputLines = mutableListOf<String>()
 
         // Read stdout in a separate daemon thread to avoid blocking the caller
-        val future = CompletableFuture<Int>()
+        val future = CompletableFuture<Int?>()
         val readerThread = Thread({
             val reader = proc.inputStream.bufferedReader()
             var handedOff = false
@@ -84,10 +91,28 @@ class NodeServerManager(
                     val l = line!!
                     outputLines.add(l)
                     log.info("server> $l")
-                    val port = portRegex.find(l)?.groupValues?.get(1)?.toIntOrNull()
+                    val readyInfo = parseReadyLine(l)
+                    if (readyInfo != null && isMatchingProject(projectPath, readyInfo.projectPath)) {
+                        future.complete(readyInfo.port)
+                        handedOff = true
+                        verifyResolvedPortAsync(readyInfo.port, projectPath)
+                        Thread({
+                            try {
+                                reader.forEachLine { log.info("server> $it") }
+                            } catch (e: Exception) {
+                                if (proc.isAlive) log.warn("DynamiaTasks: log-tail error", e)
+                            } finally {
+                                runCatching { reader.close() }
+                            }
+                        }, "dynamia-server-log-tail")
+                            .also { it.isDaemon = true }.start()
+                        break
+                    }
+                    val port = matchPort(l, portRegexes)
                     if (port != null) {
                         future.complete(port)
                         handedOff = true
+                        verifyResolvedPortAsync(port, projectPath)
                         // Keep draining stdout in background so the process doesn't block.
                         // The tail thread takes ownership of the reader and closes it when done.
                         Thread({
@@ -117,12 +142,26 @@ class NodeServerManager(
         readerThread.isDaemon = true
         readerThread.start()
 
-        // Wait up to 30 s for the port line
-        val port = runCatching { future.get(30, TimeUnit.SECONDS) }.getOrNull()
-        if (port != null) return port
+        val timeoutMs = resolveStartTimeoutMs()
+        val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs)
+
+        while (System.nanoTime() < deadline) {
+            val remainingMs = TimeUnit.NANOSECONDS.toMillis(deadline - System.nanoTime()).coerceAtLeast(1)
+            val sliceMs = minOf(500L, remainingMs)
+
+            val port = runCatching { future.get(sliceMs, TimeUnit.MILLISECONDS) }.getOrNull()
+            if (port != null) return port
+
+            val fallbackPort = readPortFromInstanceFile(projectPath)
+            if (fallbackPort != null) {
+                log.info("DynamiaTasks: port resolved from instance file: $fallbackPort")
+                verifyResolvedPortAsync(fallbackPort, projectPath)
+                return fallbackPort
+            }
+        }
 
         log.warn(
-            "DynamiaTasks: port not resolved within 30s. Process alive=${proc.isAlive}. Output:\n${
+            "DynamiaTasks: port not resolved within ${timeoutMs}ms. Process alive=${proc.isAlive}. Output:\n${
                 outputLines.joinToString(
                     "\n"
                 )
@@ -134,19 +173,69 @@ class NodeServerManager(
     }
 
     private fun readPortFromInstanceFile(projectPath: String): Int? {
-        val hash = sha1(projectPath).take(12)
+        val hash = sha1(normalizeProjectPath(projectPath)).take(12)
         val file = File(System.getProperty("user.home"), ".dynamiatasks/instances/$hash.json")
 
         if (!file.exists()) return null
 
         return try {
             val content = file.readText()
-            // Minimal JSON parse — avoid pulling in a full JSON library
-            Regex(""""port"\s*:\s*(\d+)""").find(content)?.groupValues?.get(1)?.toIntOrNull()
+            val port = Regex(""""port"\s*:\s*(\d+)""").find(content)?.groupValues?.get(1)?.toIntOrNull()
+            val instanceProjectPath = Regex(""""projectPath"\s*:\s*"([^"]+)"""")
+                .find(content)
+                ?.groupValues
+                ?.get(1)
+            if (port != null && instanceProjectPath != null && isMatchingProject(projectPath, instanceProjectPath)) port else null
         } catch (e: Exception) {
             log.warn("DynamiaTasks: could not read instance file $file", e)
             null
         }
+    }
+
+    private fun verifyResolvedPortAsync(port: Int, projectPath: String) {
+        Thread({
+            runCatching {
+                val conn = URL("http://127.0.0.1:$port/api/instance").openConnection() as HttpURLConnection
+                conn.requestMethod = "GET"
+                conn.connectTimeout = 1_500
+                conn.readTimeout = 1_500
+                conn.inputStream.bufferedReader().use { reader ->
+                    val body = reader.readText()
+                    val instanceProjectPath = Regex(""""projectPath"\s*:\s*"([^"]+)"""")
+                        .find(body)
+                        ?.groupValues
+                        ?.get(1)
+                    if (instanceProjectPath == null) {
+                        log.warn("DynamiaTasks: instance verification for :$port returned no projectPath")
+                    } else if (!isMatchingProject(projectPath, instanceProjectPath)) {
+                        log.warn("DynamiaTasks: instance verification mismatch for :$port (expected $projectPath, got $instanceProjectPath)")
+                    } else {
+                        log.info("DynamiaTasks: instance verified for $instanceProjectPath on :$port")
+                    }
+                }
+            }.onFailure {
+                log.info("DynamiaTasks: instance verification skipped for :$port (${it.message})")
+            }
+        }, "dynamia-instance-verify")
+            .also { it.isDaemon = true }
+            .start()
+    }
+
+    private fun isMatchingProject(expectedProjectPath: String, candidateProjectPath: String): Boolean {
+        return normalizeProjectPath(expectedProjectPath) == normalizeProjectPath(candidateProjectPath)
+    }
+
+    private fun resolveStartTimeoutMs(): Long {
+        val fromEnv = System.getenv("DYNAMIA_START_TIMEOUT_MS")?.toLongOrNull()
+        return if (fromEnv != null && fromEnv >= 10_000L) fromEnv else defaultStartTimeoutMs
+    }
+
+    private fun matchPort(line: String, patterns: List<Regex>): Int? {
+        for (pattern in patterns) {
+            val port = pattern.find(line)?.groupValues?.get(1)?.toIntOrNull()
+            if (port != null) return port
+        }
+        return null
     }
 
     // ── path resolution ───────────────────────────────────────────────────────
@@ -301,18 +390,17 @@ class NodeServerManager(
         val home = System.getProperty("user.home")
 
         // 1. Monorepo dev — prefer the live cli.mjs so changes are picked up immediately.
-        //    NOTE: The hardcoded home-path candidate is checked first and INDEPENDENTLY of
-        //    codeSourcePath, because in IntelliJ sandbox (runIde) the plugin ClassLoader does
-        //    not expose a usable codeSource, making codeSourcePath null and causing the whole
-        //    block to be skipped (defaulting to the bundled — potentially stale — resources).
-        val liveByHome = File(home, "IdeaProjects/dynamia-tasks/apps/web/cli.mjs").canonicalFile
-        if (liveByHome.exists()) {
-            log.info("DynamiaTasks: using live cli.mjs at ${liveByHome.absolutePath}")
-            return liveByHome.absolutePath
+        val explicit = System.getenv("DYNAMIA_SERVER_BUNDLE")
+        if (!explicit.isNullOrBlank()) {
+            val explicitFile = File(explicit).canonicalFile
+            if (explicitFile.exists()) {
+                log.info("DynamiaTasks: using explicit cli.mjs at ${explicitFile.absolutePath}")
+                return explicitFile.absolutePath
+            }
         }
 
-        // Relative-path candidates from the class code-source (works when running from
-        // build/classes/kotlin/main in a standard Gradle layout).
+        // 1. Relative-path candidates from the class code-source (works when running from
+        //    build/classes/kotlin/main in a standard Gradle layout).
         val codeSourcePath = runCatching {
             File(NodeServerManager::class.java.protectionDomain.codeSource.location.toURI())
         }.getOrNull()
@@ -335,6 +423,15 @@ class NodeServerManager(
             val cliPath = extractToTemp("server/cli.mjs", "cli.mjs")
             extractNuxtOutputToTemp()
             return cliPath
+        }
+
+        // 3. Optional live monorepo fallback for local development only
+        if (System.getenv("DYNAMIA_USE_LIVE_WEB_BUNDLE") == "1") {
+            val liveByHome = File(home, "IdeaProjects/dynamia-tasks/apps/web/cli.mjs").canonicalFile
+            if (liveByHome.exists()) {
+                log.info("DynamiaTasks: using live cli.mjs at ${liveByHome.absolutePath}")
+                return liveByHome.absolutePath
+            }
         }
 
         error("DynamiaTasks: cli.mjs not found. Run `pnpm --filter @dynamia-tasks/web build` first.")
@@ -462,6 +559,27 @@ class NodeServerManager(
         MessageDigest.getInstance("SHA-1")
             .digest(input.toByteArray())
             .joinToString("") { "%02x".format(it) }
+
+    private fun normalizeProjectPath(projectPath: String): String {
+        val normalized = File(projectPath).absoluteFile.normalize().path
+        return if (isWindows) normalized.lowercase() else normalized
+    }
+
+    private data class ReadyInfo(
+        val port: Int,
+        val projectPath: String,
+    )
+
+    private fun parseReadyLine(line: String): ReadyInfo? {
+        if (!line.startsWith(readyPrefix)) return null
+        val payload = line.removePrefix(readyPrefix)
+        val port = Regex(""""port"\s*:\s*(\d+)""").find(payload)?.groupValues?.get(1)?.toIntOrNull()
+        val projectPath = Regex(""""projectPath"\s*:\s*"([^"]+)"""")
+            .find(payload)
+            ?.groupValues
+            ?.get(1)
+        return if (port != null && projectPath != null) ReadyInfo(port, projectPath) else null
+    }
 }
 
 /** Finds the first available TCP port starting from startPort. **/

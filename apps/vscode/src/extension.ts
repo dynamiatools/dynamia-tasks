@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import { IdeCallbackServer } from './callbackServer'
 import { ServerProcess }     from './serverProcess'
-import { resolveNodeExecutable, resolveServerBundle } from './nodeResolver'
+import { resolveServerBundle } from './nodeResolver'
 
 let callbackServer: IdeCallbackServer | null = null
 let serverProcess:  ServerProcess     | null = null
@@ -77,8 +77,8 @@ async function bootstrap(
   callbackServer = cb
   log(`[dynamia-tasks] callback server on :${callbackPort}`)
 
-  // Resolve node + bundle
-  const nodeExe      = resolveNodeExecutable()
+  // Use VS Code's own Node runtime by default; allow explicit override for debugging.
+  const nodeExe      = process.env['DYNAMIA_NODE_EXE'] ?? process.execPath
   const serverBundle = resolveServerBundle(context.extensionPath)
   log(`[dynamia-tasks] node: ${nodeExe}`)
   log(`[dynamia-tasks] bundle: ${serverBundle}`)
@@ -138,6 +138,11 @@ class DynamiaTasksViewProvider implements vscode.WebviewViewProvider {
       enableScripts: true,
       localResourceRoots: [],
     }
+    webviewView.webview.onDidReceiveMessage(message => {
+      if (message?.command === 'restart') {
+        void vscode.commands.executeCommand('dynamia-tasks.restart')
+      }
+    })
 
     if (this.port !== null) {
       webviewView.webview.html = this.buildAppHtml(this.port)

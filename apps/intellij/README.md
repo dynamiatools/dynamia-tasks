@@ -54,6 +54,15 @@ Your token is stored locally and never leaves your machine.
 
 ---
 
+## Local Development Notes
+
+- Gradle uses the JDK from your environment (`JAVA_HOME` or the JVM used to launch Gradle).
+- If you need to pin a local JDK, set it in your user-level Gradle config (`~/.gradle/gradle.properties`) with:
+  - `org.gradle.java.home=C:/Path/To/JDK`
+- Do not commit machine-specific JDK paths in project files.
+
+---
+
 ## Privacy
 
 - ✅ No cloud backend

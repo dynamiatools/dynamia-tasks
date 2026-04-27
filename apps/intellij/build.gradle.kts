@@ -1,4 +1,5 @@
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("org.jetbrains.kotlin.jvm")          version "2.1.20"
@@ -8,10 +9,23 @@ plugins {
 group   = providers.gradleProperty("pluginGroup").get()
 version = providers.gradleProperty("pluginVersion").get()
 
-val javaVersion: String by project
+val javaVersion = providers.gradleProperty("javaVersion").orElse("17").get()
 
 kotlin {
-    jvmToolchain(javaVersion.toInt())
+    // Use the OS/environment JDK (JAVA_HOME/current JVM) and only pin the bytecode target.
+    compilerOptions {
+        jvmTarget.set(JvmTarget.fromTarget(javaVersion))
+    }
+}
+
+java {
+    val target = JavaVersion.toVersion(javaVersion)
+    sourceCompatibility = target
+    targetCompatibility = target
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.release.set(javaVersion.toInt())
 }
 
 repositories {

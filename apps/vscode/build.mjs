@@ -2,7 +2,7 @@
 /**
  * Build script for the VS Code extension.
  * Bundles src/extension.ts → dist/extension.js using esbuild.
- * Also copies apps/web/.output/public/ → dist/web/ if it exists.
+ * Also copies apps/web/cli.mjs + apps/web/.output/ → dist/web/ if they exist.
  */
 import esbuild from 'esbuild'
 import path from 'node:path'
@@ -34,15 +34,20 @@ if (isWatch) {
   console.log('[build] extension bundled → dist/extension.js')
 }
 
-// ── copy web output ─────────────────────────────────────────────────────────
-const webOutputDir = path.resolve(__dirname, '../../apps/web/.output/public')
+// ── copy web server bundle ──────────────────────────────────────────────────
+const webRootDir   = path.resolve(__dirname, '../../apps/web')
+const webOutputDir = path.resolve(webRootDir, '.output')
+const webCliFile   = path.resolve(webRootDir, 'cli.mjs')
 const destDir      = path.resolve(__dirname, 'dist/web')
 
-if (fs.existsSync(webOutputDir)) {
-  copyDirSync(webOutputDir, destDir)
-  console.log('[build] Web output copied → dist/web/')
+if (fs.existsSync(webOutputDir) && fs.existsSync(webCliFile)) {
+  fs.rmSync(destDir, { recursive: true, force: true })
+  fs.mkdirSync(destDir, { recursive: true })
+  fs.copyFileSync(webCliFile, path.join(destDir, 'cli.mjs'))
+  copyDirSync(webOutputDir, path.join(destDir, '.output'))
+  console.log('[build] Web server bundle copied → dist/web/')
 } else {
-  console.warn('[build] WARNING: apps/web/.output/public not found — run `pnpm build:web` first.')
+  console.warn('[build] WARNING: apps/web/cli.mjs or apps/web/.output not found — run `pnpm build:web` first.')
 }
 
 function copyDirSync(src, dest) {

@@ -56,8 +56,13 @@ export async function readCache(connectorId: string): Promise<{ ts: string; data
 
 // ── Instance port registry ────────────────────────────────────────────────────
 
+export function normalizeProjectPath(projectPath: string): string {
+  const resolved = path.resolve(projectPath)
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved
+}
+
 function instanceKey(projectPath: string): string {
-  return crypto.createHash('sha1').update(projectPath).digest('hex').slice(0, 12)
+  return crypto.createHash('sha1').update(normalizeProjectPath(projectPath)).digest('hex').slice(0, 12)
 }
 
 export interface InstanceInfo {
@@ -67,7 +72,7 @@ export interface InstanceInfo {
   startedAt: string
 }
 
-export async function writeInstancePort(projectPath: string, port: number): Promise<void> {
+export async function writeInstancePort(projectPath: string, port: number): Promise<InstanceInfo> {
   await fs.mkdir(INSTANCES_DIR, { recursive: true })
   const key = instanceKey(projectPath)
   const info: InstanceInfo = {
@@ -77,6 +82,7 @@ export async function writeInstancePort(projectPath: string, port: number): Prom
     startedAt: new Date().toISOString(),
   }
   await fs.writeFile(path.join(INSTANCES_DIR, `${key}.json`), JSON.stringify(info, null, 2), 'utf-8')
+  return info
 }
 
 export async function removeInstancePort(projectPath: string): Promise<void> {

@@ -9,7 +9,7 @@
  */
 import net from 'node:net'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -63,7 +63,7 @@ async function main() {
 
   // Start Nitro server in-process
   const serverEntry = path.join(__dirname, '.output', 'server', 'index.mjs')
-  await import(serverEntry)
+  await import(pathToFileURL(serverEntry).href)
 }
 
 main().catch(e => {
