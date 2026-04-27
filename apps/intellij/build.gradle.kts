@@ -46,6 +46,14 @@ dependencies {
         pluginVerifier()
         testFramework(TestFrameworkType.Platform)
     }
+
+    // IDE Bridge — IntelliJ implementation (local project during dev)
+    implementation(project(":ide-bridge-intellij"))
+    // OR when consuming from Maven Central:
+    // implementation("tools.dynamia:ide-bridge-intellij:1.0.0")
+
+    // Gson bundled by IntelliJ Platform — compileOnly so it doesn't double-ship
+    compileOnly("com.google.code.gson:gson:2.10.1")
 }
 
 intellijPlatform {
@@ -76,36 +84,24 @@ intellijPlatform {
     }
 }
 
-// ── Copy Nuxt full-stack output into generated plugin resources ───────────────
-// Nuxt build produces:
-//   .output/server/  → Nitro server bundle (index.mjs + chunks/)
-//   .output/public/  → Static SPA assets (served by Nitro automatically)
-// We also bundle cli.mjs (the port-discovery launcher) separately.
-//
-// Resources are written to build/generated-resources/ (NOT src/main/resources)
-// so that generated artefacts never pollute the source tree.
-val nuxtOutputDir = file("${rootProject.projectDir}/../../apps/web/.output")
-val nuxtCliFile   = file("${rootProject.projectDir}/../../apps/web/cli.mjs")
+// ── Copy bundled Nuxt SPA into plugin resources ───────────────────────────────
+// The SPA is now pure static (no Nitro server). We only copy .output/public/.
+
+val nuxtPublicDir = file("${rootProject.projectDir}/../../apps/web/.output/public")
 val generatedResources = layout.buildDirectory.dir("generated-resources")
 
-tasks.register<Copy>("copyNuxtOutput") {
-    from(nuxtOutputDir)
-    into(generatedResources.map { it.dir("nuxt-output") })
-    onlyIf { nuxtOutputDir.exists() }
-}
-
-tasks.register<Copy>("copyCliLauncher") {
-    from(nuxtCliFile)
-    into(generatedResources.map { it.dir("server") })
-    onlyIf { nuxtCliFile.exists() }
+tasks.register<Copy>("copyNuxtSpa") {
+    from(nuxtPublicDir)
+    into(generatedResources.map { it.dir("web") })
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    onlyIf { nuxtPublicDir.exists() }
 }
 
 // Register the generated directory as a resource source set so that
 // processResources picks it up and includes it in the plugin JAR.
 sourceSets["main"].resources.srcDir(generatedResources)
 
-tasks.named("processResources") {
-    dependsOn("copyNuxtOutput", "copyCliLauncher")
+tasks.named<Copy>("processResources") {
+    dependsOn("copyNuxtSpa")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
-
-

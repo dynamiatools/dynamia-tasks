@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TaskView } from '@dynamia-tasks/core'
+import type { ConnectorTask, TaskComment, TaskLabel, TaskView } from '@dynamia-tasks/core'
 import { useExplorerStore } from '~/stores/explorer'
 import {
   ArrowTopRightOnSquareIcon,
@@ -14,14 +14,14 @@ const connectorId = route.params.connectorId as string
 const taskId = decodeURIComponent(route.params.taskId as string)
 const fromWorkspace = computed(() => route.query.from === 'workspace')
 
-const api = useApi()
+const svc = useTaskService()
 const workspace = useWorkspaceStore()
 const explorer = useExplorerStore()
 
 const task = ref<TaskView | null>(null)
-const comments = ref<any[]>([])
-const subtasks = ref<any[]>([])
-const availableLabels = ref<{ id: string; name: string; color?: string }[]>([])
+const comments = ref<TaskComment[]>([])
+const subtasks = ref<ConnectorTask[]>([])
+const availableLabels = ref<TaskLabel[]>([])
 const loading = ref(true)
 const refreshing = ref(false)
 const error = ref<string | null>(null)
@@ -69,23 +69,23 @@ async function loadTask() {
   }
   error.value = null
   try {
-    const res = await api.get<{ task: TaskView }>(`/api/connectors/${connectorId}/tasks/${encodeURIComponent(taskId)}`)
-    task.value = res.task
-    editTitle.value = res.task.title
-    editDesc.value = res.task.description ?? ''
-    editLabels.value = res.task.labels?.map(l => l.name) ?? []
-    if (res.task.capabilities?.canComment) {
-      const cr = await api.get<{ comments: any[] }>(`/api/connectors/${connectorId}/tasks/${encodeURIComponent(taskId)}/comments`)
-      comments.value = cr.comments
+    const resolvedTask: TaskView = await svc.getTask(connectorId, taskId)
+    task.value = resolvedTask
+    editTitle.value = resolvedTask.title
+    editDesc.value = resolvedTask.description ?? ''
+    editLabels.value = resolvedTask.labels?.map(l => l.name) ?? []
+
+    if (resolvedTask.capabilities?.canComment) {
+      comments.value = await svc.fetchComments(connectorId, taskId)
     }
-    if (res.task.capabilities?.canSubtasks) {
-      const sr = await api.get<{ subtasks: any[] }>(`/api/connectors/${connectorId}/tasks/${encodeURIComponent(taskId)}/subtasks`)
-      subtasks.value = sr.subtasks
+
+    if (resolvedTask.capabilities?.canSubtasks) {
+      subtasks.value = await svc.fetchSubtasks(connectorId, taskId)
     }
-    if (res.task.capabilities?.canLabel) {
+
+    if (resolvedTask.capabilities?.canLabel) {
       try {
-        const lr = await api.get<{ labels: any[] }>(`/api/connectors/${connectorId}/labels${res.task.sourceId ? `?sourceId=${encodeURIComponent(res.task.sourceId)}` : ''}`)
-        availableLabels.value = lr.labels
+        availableLabels.value = await svc.fetchLabels(connectorId, resolvedTask.sourceId)
       } catch { /* labels not critical */ }
     }
   } catch (e: any) {
@@ -98,20 +98,18 @@ async function loadTask() {
 
 async function toggleDone() {
   if (!task.value) return
-  const res = await api.patch<{ task: TaskView }>(
-    `/api/connectors/${connectorId}/tasks/${encodeURIComponent(taskId)}`,
-    { done: !task.value.done }
-  )
-  task.value = { ...task.value, ...res.task }
+  const updated = await svc.updateTask(connectorId, taskId, { done: !task.value.done })
+  task.value = { ...task.value, ...updated }
 }
 
 async function saveEdit() {
   if (!task.value) return
-  const res = await api.patch<{ task: TaskView }>(
-    `/api/connectors/${connectorId}/tasks/${encodeURIComponent(taskId)}`,
-    { title: editTitle.value, description: editDesc.value, labels: editLabels.value }
-  )
-  task.value = { ...task.value, ...res.task }
+  const updated = await svc.updateTask(connectorId, taskId, {
+    title: editTitle.value,
+    description: editDesc.value,
+    labels: editLabels.value,
+  })
+  task.value = { ...task.value, ...updated }
   editing.value = false
 }
 
@@ -119,11 +117,8 @@ async function submitComment(): Promise<boolean> {
   if (!newComment.value.trim()) return false
   postingComment.value = true
   try {
-    const res = await api.post<{ comment: any }>(
-      `/api/connectors/${connectorId}/tasks/${encodeURIComponent(taskId)}/comments`,
-      { body: newComment.value }
-    )
-    comments.value.push(res.comment)
+    const comment = await svc.addComment(connectorId, taskId, newComment.value)
+    comments.value.push(comment)
     newComment.value = ''
     return true
   } finally {
@@ -471,7 +466,7 @@ async function confirmRemoveFromWorkspace() {
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85"
         @click="lightboxImg = null"
       >
-        <img :src="lightboxImg" class="max-w-full max-h-full rounded object-contain" />
+        <img :src="lightboxImg" alt="Task attachment preview" class="max-w-full max-h-full rounded object-contain" />
       </div>
     </Teleport>
   </div>

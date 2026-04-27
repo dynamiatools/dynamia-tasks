@@ -81,6 +81,21 @@ export interface TaskView extends ConnectorTask {
   capabilities: ConnectorCapabilities
 }
 
+/** Connector metadata as returned by TaskService.getConnectors() */
+export interface ConnectorInfo {
+  id: string
+  name: string
+  icon: string
+  capabilities: ConnectorCapabilities
+  configured: boolean
+}
+
+/** Result shape for workspace operations */
+export interface WorkspaceResult {
+  items: TaskView[]
+  activeTask: WorkspaceActiveTask | null
+}
+
 // ── Config ────────────────────────────────────────────────────────────────────
 
 export interface AppConfig {

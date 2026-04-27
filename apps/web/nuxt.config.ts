@@ -7,27 +7,7 @@ export default defineNuxtConfig({
   // Register all components by filename only, regardless of subdirectory depth
   components: [{ path: '~/components', pathPrefix: false }],
   css: ['~/assets/css/main.css'],
-  runtimeConfig: {
-    // Server-only (not exposed to client)
-    projectPath: '',      // overridden by NUXT_PROJECT_PATH env var
-    ideCallbackUrl: '',   // overridden by NUXT_IDE_CALLBACK_URL env var
-    public: {
-      // Empty string → useApi falls back to window.location.origin (same-origin).
-      // Override with NUXT_PUBLIC_API_BASE=http://localhost:7842 for standalone dev.
-      apiBase: '',
-    },
-  },
-  nitro: {
-    // Bind only to localhost for security (same as old Fastify server)
-    host: '127.0.0.1',
-  },
-  // Dev server: forward env vars so server routes receive them during `nuxt dev`
-  $development: {
-    runtimeConfig: {
-      projectPath: process.env.NUXT_PROJECT_PATH || process.env.DYNAMIA_PROJECT_PATH || '',
-      ideCallbackUrl: process.env.NUXT_IDE_CALLBACK_URL || '',
-    },
-  },
+
   app: {
     head: {
       title: 'Dynamia Tasks',

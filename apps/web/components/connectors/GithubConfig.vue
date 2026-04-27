@@ -3,6 +3,7 @@
 
 const configStore = useConfigStore()
 const connectorsStore = useConnectorsStore()
+const svc = useTaskService()
 
 const token = ref('')
 const availableSources = ref<{ id: string; name: string; group?: string }[]>([])
@@ -43,16 +44,15 @@ async function loadRepos() {
   reposError.value = ''
   reposLoaded.value = false
   try {
-    const api = useApi()
-    const res = await api.post<{ sources: any[] }>('/api/connectors/github/probe-sources', { token: t, orgs: [] })
-    availableSources.value = (res.sources ?? []).sort((a: any, b: any) => {
+    const sources = await svc.probeConnectorSources('github', { token: t, orgs: [] })
+    availableSources.value = (sources ?? []).sort((a, b) => {
       const g = (a.group ?? '').localeCompare(b.group ?? '')
       return g !== 0 ? g : a.name.localeCompare(b.name)
     })
     reposLoaded.value = true
-    selectedRepos.value = selectedRepos.value.filter(r => res.sources.some((s: any) => s.id === r))
+    selectedRepos.value = selectedRepos.value.filter(r => sources.some(s => s.id === r))
   } catch (e: any) {
-    reposError.value = e?.data?.message ?? e?.message ?? 'error loading repositories'
+    reposError.value = e?.message ?? 'error loading repositories'
     availableSources.value = []
   } finally {
     loadingRepos.value = false

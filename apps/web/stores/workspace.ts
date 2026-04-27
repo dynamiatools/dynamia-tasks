@@ -1,12 +1,10 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import type { TaskView, WorkspaceActiveTask } from '@dynamia-tasks/core'
-import { useApi } from '../composables/useApi'
 
 interface WorkspaceResponse {
   items: TaskView[]
   activeTask: WorkspaceActiveTask | null
-  cached?: boolean
 }
 
 export const useWorkspaceStore = defineStore('workspace', () => {
@@ -15,7 +13,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  const api = useApi()
+  const svc = useTaskService()
 
   function applyWorkspaceResponse(res: WorkspaceResponse) {
     items.value = res.items
@@ -23,12 +21,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   async function load() {
-    // Only show loading spinner on first load (no items yet)
     if (items.value.length === 0) loading.value = true
     error.value = null
     try {
-      const res = await api.get<WorkspaceResponse>('/api/workspace')
-      applyWorkspaceResponse(res)
+      applyWorkspaceResponse(await svc.loadWorkspace())
     } catch (e: any) {
       error.value = e.message ?? 'Failed to load workspace'
     } finally {
@@ -37,17 +33,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   async function addTask(connectorId: string, taskId: string, optimisticTask?: TaskView) {
-    // Optimistic add if we already have the task data
     const alreadyIn = items.value.some(t => t.connectorId === connectorId && t.id === taskId)
-    if (optimisticTask && !alreadyIn) {
-      items.value = [...items.value, optimisticTask]
-    }
+    if (optimisticTask && !alreadyIn) items.value = [...items.value, optimisticTask]
 
     try {
-      const res = await api.post<WorkspaceResponse>('/api/workspace/add', { connectorId, taskId })
-      applyWorkspaceResponse(res)
+      applyWorkspaceResponse(await svc.addToWorkspace(connectorId, taskId))
     } catch {
-      // Revert optimistic add
       if (optimisticTask) {
         items.value = items.value.filter(t => !(t.connectorId === connectorId && t.id === taskId))
       }
@@ -55,7 +46,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   async function removeTask(connectorId: string, taskId: string) {
-    // Optimistic remove
     const prev = [...items.value]
     const prevActive = activeTask.value
     items.value = items.value.filter(t => !(t.connectorId === connectorId && t.id === taskId))
@@ -64,9 +54,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
 
     try {
-      const encoded = encodeURIComponent(taskId)
-      const res = await api.delete<WorkspaceResponse>(`/api/workspace/${connectorId}/${encoded}`)
-      applyWorkspaceResponse(res)
+      applyWorkspaceResponse(await svc.removeFromWorkspace(connectorId, taskId))
     } catch {
       items.value = prev
       activeTask.value = prevActive
@@ -74,20 +62,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   async function toggleDone(task: TaskView) {
-    // Optimistic update — flip immediately in UI
     const idx = items.value.findIndex(t => t.id === task.id && t.connectorId === task.connectorId)
     if (idx !== -1) items.value[idx] = { ...items.value[idx], done: !task.done }
 
-    // Sync with server in background
     try {
-      const encoded = encodeURIComponent(task.id)
-      const res = await api.patch<{ task: TaskView }>(
-        `/api/connectors/${task.connectorId}/tasks/${encoded}`,
-        { done: !task.done }
-      )
-      if (idx !== -1) items.value[idx] = { ...items.value[idx], ...res.task }
+      const updated = await svc.updateTask(task.connectorId, task.id, { done: !task.done })
+      if (idx !== -1) items.value[idx] = { ...items.value[idx], ...updated }
     } catch {
-      // Revert on error
       if (idx !== -1) items.value[idx] = { ...items.value[idx], done: task.done }
     }
   }
@@ -106,11 +87,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     activeTask.value = task ? { connectorId: task.connectorId, taskId: task.id } : null
 
     try {
-      const res = await api.patch<WorkspaceResponse>('/api/workspace/active', {
-        connectorId: task?.connectorId ?? null,
-        taskId: task?.id ?? null,
-      })
-      applyWorkspaceResponse(res)
+      applyWorkspaceResponse(await svc.setActiveTask(task?.connectorId ?? null, task?.id ?? null))
     } catch {
       activeTask.value = previous
     }
@@ -118,28 +95,22 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   async function reorderByKeys(orderedKeys: string[]) {
     const prev = [...items.value]
-    const keySet = new Set(orderedKeys)
     const byKey = new Map(items.value.map(task => [`${task.connectorId}:${task.id}`, task]))
+    const keySet = new Set(orderedKeys)
 
     const ordered = orderedKeys
       .map(key => byKey.get(key))
       .filter((task): task is TaskView => Boolean(task))
-
-    // Keep tasks not present in payload at the end to avoid accidental data loss.
     const rest = items.value.filter(task => !keySet.has(`${task.connectorId}:${task.id}`))
     items.value = [...ordered, ...rest]
 
     try {
-      const payloadItems = items.value.map((task, order) => ({
+      const orderedItems = items.value.map((task, order) => ({
         connectorId: task.connectorId,
         taskId: task.id,
         order,
       }))
-
-      const res = await api.patch<WorkspaceResponse>('/api/workspace/reorder', {
-        items: payloadItems,
-      })
-      applyWorkspaceResponse(res)
+      applyWorkspaceResponse(await svc.reorderWorkspace(orderedItems))
     } catch {
       items.value = prev
     }
@@ -148,13 +119,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   async function clearAllTasks() {
     const prev = [...items.value]
     const prevActive = activeTask.value
-
     items.value = []
     activeTask.value = null
 
     try {
-      const res = await api.delete<WorkspaceResponse>('/api/workspace/clear')
-      applyWorkspaceResponse(res)
+      applyWorkspaceResponse(await svc.clearWorkspace())
     } catch {
       items.value = prev
       activeTask.value = prevActive
@@ -164,7 +133,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const completedCount = computed(() => items.value.filter(t => t.done).length)
   const pendingCount = computed(() => items.value.length - completedCount.value)
 
-  // Group by module/label/other
   const grouped = computed(() => {
     const groups: Record<string, TaskView[]> = {}
     for (const task of items.value) {

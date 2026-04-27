@@ -2,19 +2,16 @@
   "name": "@dynamia-tasks/web",
   "private": true,
   "version": "0.1.0",
-  "bin": {
-    "dynamia-server": "cli.mjs"
-  },
   "scripts": {
     "dev": "nuxt dev --port 3000",
-    "build": "nuxt build",
-    "preview": "node .output/server/index.mjs",
-    "start": "node cli.mjs"
+    "build": "nuxt generate",
+    "preview": "npx serve .output/public"
   },
   "dependencies": {
     "@dynamia-tasks/connector-github": "workspace:*",
     "@dynamia-tasks/connector-local": "workspace:*",
     "@dynamia-tasks/core": "workspace:*",
+    "@dynamia-tools/ide-bridge": "^1.0.0",
     "@heroicons/vue": "^2.2.0",
     "@nuxtjs/tailwindcss": "^6.12.0",
     "@pinia/nuxt": "^0.5.5",

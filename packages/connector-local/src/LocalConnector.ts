@@ -1,7 +1,7 @@
-import fs from 'node:fs/promises'
-import path from 'node:path'
-import { randomUUID } from 'node:crypto'
-import { spawnSync } from 'node:child_process'
+import { ide } from '@dynamia-tools/ide-bridge'
+
+/** Works in browser (JCEF / WebView) and Node.js 19+. No import needed. */
+const newUUID = (): string => crypto.randomUUID()
 import type {
   TaskConnector,
   ConnectorTask,
@@ -30,18 +30,24 @@ export class LocalConnector implements TaskConnector {
     hasExplorer: false,
   }
 
-  private projectPath: string
+  private _projectPath: string | undefined
 
-  constructor(projectPath: string = process.cwd()) {
-    this.projectPath = projectPath
+  constructor(projectPath?: string) {
+    this._projectPath = projectPath
+  }
+
+  /** Resolved lazily so the bridge is not accessed at instantiation time. */
+  private get projectPath(): string {
+    if (!this._projectPath) this._projectPath = ide.env.getProjectPath()
+    return this._projectPath
   }
 
   private get tasksDir() {
-    return path.join(this.projectPath, '.tasks')
+    return ide.path.join(this.projectPath, '.tasks')
   }
 
   private get commentsFile() {
-    return path.join(this.tasksDir, 'comments.json')
+    return ide.path.join(this.tasksDir, 'comments.json')
   }
 
   private colorForLabel(name: string): string {
@@ -112,7 +118,7 @@ export class LocalConnector implements TaskConnector {
 
   async configure(config: unknown): Promise<void> {
     const c = config as { projectPath?: string }
-    if (c?.projectPath) this.projectPath = c.projectPath
+    if (c?.projectPath) this._projectPath = c.projectPath
   }
 
   getConfigSchema(): ConnectorConfigSchema {
@@ -122,19 +128,19 @@ export class LocalConnector implements TaskConnector {
   private async readAllTasks(): Promise<ConnectorTask[]> {
     let files: string[] = []
     try {
-      files = await fs.readdir(this.tasksDir)
+      files = await ide.fs.readdir(this.tasksDir)
     } catch {
       return [] // .tasks/ doesn't exist yet
     }
 
     const tasks: ConnectorTask[] = []
     for (const file of files.filter(f => f.endsWith('.json') && f !== 'comments.json')) {
-      const filePath = path.join(this.tasksDir, file)
+      const filePath = ide.path.join(this.tasksDir, file)
       try {
-        const raw = await fs.readFile(filePath, 'utf-8')
+        const raw = await ide.fs.readFile(filePath)
         const arr = JSON.parse(raw) as ConnectorTask[]
         tasks.push(...arr.map(task => this.normalizeTask(task)))
-      } catch (e) {
+      } catch {
         console.warn(`[connector-local] Skipping ${file}: invalid JSON`)
       }
     }
@@ -142,17 +148,16 @@ export class LocalConnector implements TaskConnector {
   }
 
   private async writeFile(filename: string, tasks: ConnectorTask[]): Promise<void> {
-    await fs.mkdir(this.tasksDir, { recursive: true })
-    await fs.writeFile(
-      path.join(this.tasksDir, filename),
+    await ide.fs.mkdir(this.tasksDir, { recursive: true })
+    await ide.fs.writeFile(
+      ide.path.join(this.tasksDir, filename),
       JSON.stringify(tasks, null, 2),
-      'utf-8'
     )
   }
 
   private async readComments(): Promise<Record<string, TaskComment[]>> {
     try {
-      const raw = await fs.readFile(this.commentsFile, 'utf-8')
+      const raw = await ide.fs.readFile(this.commentsFile)
       return JSON.parse(raw)
     } catch {
       return {}
@@ -160,26 +165,23 @@ export class LocalConnector implements TaskConnector {
   }
 
   private async writeComments(data: Record<string, TaskComment[]>): Promise<void> {
-    await fs.mkdir(this.tasksDir, { recursive: true })
-    await fs.writeFile(this.commentsFile, JSON.stringify(data, null, 2), 'utf-8')
+    await ide.fs.mkdir(this.tasksDir, { recursive: true })
+    await ide.fs.writeFile(this.commentsFile, JSON.stringify(data, null, 2))
   }
 
-  // Find which file contains a given task id
   private async findTaskFile(id: string): Promise<{ file: string; tasks: ConnectorTask[] } | null> {
     let files: string[] = []
     try {
-      files = await fs.readdir(this.tasksDir)
+      files = await ide.fs.readdir(this.tasksDir)
     } catch {
       return null
     }
     for (const file of files.filter(f => f.endsWith('.json') && f !== 'comments.json')) {
       try {
-        const raw = await fs.readFile(path.join(this.tasksDir, file), 'utf-8')
+        const raw = await ide.fs.readFile(ide.path.join(this.tasksDir, file))
         const arr = JSON.parse(raw) as ConnectorTask[]
         if (arr.some(t => t.id === id)) return { file, tasks: arr }
-      } catch {
-        // skip
-      }
+      } catch { /* skip */ }
     }
     return null
   }
@@ -213,7 +215,7 @@ export class LocalConnector implements TaskConnector {
   async createTask(newTask: NewTask): Promise<ConnectorTask> {
     const now = new Date().toISOString()
     const task: ConnectorTask = {
-      id: `local-${randomUUID()}`,
+      id: `local-${newUUID()}`,
       connectorId: 'local',
       title: newTask.title,
       description: newTask.description,
@@ -225,15 +227,12 @@ export class LocalConnector implements TaskConnector {
       updatedAt: now,
     }
 
-    // Append to backlog.json (or create it)
     const filename = 'backlog.json'
     let existing: ConnectorTask[] = []
     try {
-      const raw = await fs.readFile(path.join(this.tasksDir, filename), 'utf-8')
+      const raw = await ide.fs.readFile(ide.path.join(this.tasksDir, filename))
       existing = JSON.parse(raw)
-    } catch {
-      // file doesn't exist yet
-    }
+    } catch { /* file doesn't exist yet */ }
     await this.writeFile(filename, [...existing, task])
     return task
   }
@@ -273,23 +272,15 @@ export class LocalConnector implements TaskConnector {
     return [...map.values()].sort((a, b) => a.name.localeCompare(b.name))
   }
 
-  private resolveAuthor(): string {
-    // 1. Try git config user.name in projectPath
+  private async resolveAuthor(): Promise<string> {
     try {
-      const result = spawnSync('git', ['config', 'user.name'], {
+      const result = await ide.shell.exec('git', ['config', 'user.name'], {
         cwd: this.projectPath,
-        encoding: 'utf-8',
         timeout: 2000,
       })
-      const name = result.stdout?.trim()
+      const name = result.stdout.trim()
       if (name) return name
     } catch { /* not a git repo */ }
-
-    // 2. Try system user env vars
-    const envUser = process.env.USER ?? process.env.USERNAME
-    if (envUser) return envUser
-
-    // 3. Fallback
     return 'local'
   }
 
@@ -299,12 +290,13 @@ export class LocalConnector implements TaskConnector {
   }
 
   async addComment(taskId: string, body: string): Promise<TaskComment> {
-    const all = await this.readComments()
-    const now = new Date().toISOString()
+    const all    = await this.readComments()
+    const now    = new Date().toISOString()
+    const author = await this.resolveAuthor()
     const comment: TaskComment = {
-      id: randomUUID(),
+      id: newUUID(),
       body,
-      author: { id: 'local', login: this.resolveAuthor() },
+      author: { id: 'local', login: author },
       createdAt: now,
       updatedAt: now,
     }

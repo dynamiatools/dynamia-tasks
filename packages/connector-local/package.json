@@ -1,6 +1,7 @@
 {
   "name": "@dynamia-tasks/connector-local",
   "version": "0.1.0",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -8,7 +9,8 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@dynamia-tasks/core": "workspace:*"
+    "@dynamia-tasks/core": "workspace:*",
+    "@dynamia-tools/ide-bridge": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

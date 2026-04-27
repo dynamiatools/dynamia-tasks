@@ -3,23 +3,23 @@ import type { AppConfig } from '@dynamia-tasks/core'
 
 export const useConfigStore = defineStore('config', () => {
   const config = ref<AppConfig | null>(null)
-  const api = useApi()
+  const svc = useTaskService()
 
   async function load() {
-    config.value = await api.get<AppConfig>('/api/config')
+    config.value = await svc.loadConfig()
   }
 
   async function saveConnectorConfig(connectorId: string, data: unknown) {
-    await api.put(`/api/config/connectors/${connectorId}`, data)
+    await svc.saveConnectorConfig(connectorId, data)
     await load()
   }
 
   async function getConnectorConfig(connectorId: string) {
-    return api.get<unknown>(`/api/config/connectors/${connectorId}`)
+    return svc.getConnectorConfig(connectorId)
   }
 
   async function getSchema(connectorId: string) {
-    return api.get<{ fields: any[] }>(`/api/connectors/${connectorId}/schema`)
+    return svc.getSchema(connectorId)
   }
 
   return { config, load, saveConnectorConfig, getConnectorConfig, getSchema }

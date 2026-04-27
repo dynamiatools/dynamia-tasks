@@ -1,22 +1,8 @@
 <script setup lang="ts">
-import type { TaskLabel } from '@dynamia-tasks/core'
+import type { TaskLabel, ConnectorInfo, ConnectorSource } from '@dynamia-tasks/core'
 import { ArrowLeftIcon } from '@heroicons/vue/20/solid'
 
-interface ConnectorInfo {
-  id: string
-  name: string
-  icon: string
-  capabilities: { canCreate: boolean; hasExplorer: boolean; canLabel: boolean }
-  configured: boolean
-}
-
-interface ConnectorSource {
-  id: string
-  name: string
-  group?: string
-}
-
-const api = useApi()
+const svc = useTaskService()
 const router = useRouter()
 
 const connectors = ref<ConnectorInfo[]>([])
@@ -30,7 +16,6 @@ const description = ref('')
 const priority = ref<'high' | 'medium' | 'low' | ''>('')
 const selectedLabels = ref<string[]>([])
 
-
 const loadingConnectors = ref(true)
 const loadingSources = ref(false)
 const loadingLabels = ref(false)
@@ -40,8 +25,8 @@ const error = ref('')
 
 onMounted(async () => {
   try {
-    const res = await api.get<{ connectors: ConnectorInfo[] }>('/api/connectors')
-    connectors.value = res.connectors.filter(c => c.capabilities.canCreate && c.configured)
+    const all = await svc.getConnectors()
+    connectors.value = all.filter(c => c.capabilities.canCreate && c.configured)
   } catch {
     error.value = 'Failed to load connectors'
   } finally {
@@ -59,8 +44,7 @@ watch(selectedConnector, async (c) => {
   if (c.capabilities.hasExplorer) {
     loadingSources.value = true
     try {
-      const res = await api.get<{ sources: ConnectorSource[] }>(`/api/connectors/${c.id}/sources`)
-      sources.value = res.sources
+      sources.value = await svc.fetchSources(c.id)
     } catch {
       error.value = 'Failed to load sources'
     } finally {
@@ -85,11 +69,9 @@ async function loadLabels(connectorId: string, sourceId: string) {
   loadingLabels.value = true
   labelsError.value = ''
   try {
-    const qs = sourceId ? `?sourceId=${encodeURIComponent(sourceId)}` : ''
-    const res = await api.get<{ labels: TaskLabel[] }>(`/api/connectors/${connectorId}/labels${qs}`)
-    availableLabels.value = res.labels ?? []
+    availableLabels.value = await svc.fetchLabels(connectorId, sourceId || undefined)
   } catch (e: any) {
-    labelsError.value = e?.data?.message ?? e?.message ?? 'Failed to load labels'
+    labelsError.value = e?.message ?? 'Failed to load labels'
     availableLabels.value = []
   } finally {
     loadingLabels.value = false
@@ -114,24 +96,19 @@ async function submit() {
   submitting.value = true
   error.value = ''
   try {
-    const body: Record<string, unknown> = {
+    const created = await svc.createTask(selectedConnector.value.id, {
       title: title.value.trim(),
       description: description.value.trim() || undefined,
       labels: selectedLabels.value.length ? selectedLabels.value : undefined,
       priority: priority.value || undefined,
       sourceId: selectedSourceId.value || undefined,
-    }
-    const res = await api.post<{ task: { id: string; connectorId: string } }>(
-      `/api/connectors/${selectedConnector.value.id}/tasks`,
-      body
-    )
-    const created = res.task
+    })
     try {
-      await api.post('/api/workspace/add', { connectorId: created.connectorId, taskId: created.id })
+      await svc.addToWorkspace(created.connectorId, created.id)
     } catch { /* non-fatal */ }
     await router.push('/')
   } catch (e: any) {
-    error.value = e?.data?.message ?? e?.message ?? 'Failed to create task'
+    error.value = e?.message ?? 'Failed to create task'
     submitting.value = false
   }
 }
