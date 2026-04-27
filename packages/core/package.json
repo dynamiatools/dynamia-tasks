@@ -9,7 +9,7 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@dynamia-tools/ide-bridge": "^1.0.0"
+    "@dynamia-tools/ide-bridge": "file:../../../ide-bridge/ide-bridge"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

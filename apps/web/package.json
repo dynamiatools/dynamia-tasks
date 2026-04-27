@@ -11,7 +11,7 @@
     "@dynamia-tasks/connector-github": "workspace:*",
     "@dynamia-tasks/connector-local": "workspace:*",
     "@dynamia-tasks/core": "workspace:*",
-    "@dynamia-tools/ide-bridge": "^1.0.0",
+    "@dynamia-tools/ide-bridge": "file:../../../ide-bridge/ide-bridge",
     "@heroicons/vue": "^2.2.0",
     "@nuxtjs/tailwindcss": "^6.12.0",
     "@pinia/nuxt": "^0.5.5",

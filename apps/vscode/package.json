@@ -60,7 +60,8 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@dynamia-tools/ide-bridge-vscode": "^1.0.0"
+    "@dynamia-tools/ide-bridge": "file:../../../ide-bridge/ide-bridge",
+    "@dynamia-tools/ide-bridge-vscode": "file:../../../ide-bridge/ide-bridge-vscode"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

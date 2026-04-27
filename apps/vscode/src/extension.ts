@@ -65,7 +65,7 @@ class DynamiaTasksViewProvider implements vscode.WebviewViewProvider {
     this.log(`[dynamia-tasks] projectPath: ${projectPath}`)
 
     // Attach extension-host bridge (handles all ide.* calls from the SPA)
-    this.bridgeHost = new VsCodeBridgeHost(webviewView.webview, projectPath)
+    this.bridgeHost = new VsCodeBridgeHost(webviewView.webview, projectPath, this.context)
 
     const devUrl    = process.env['DYNAMIA_DEV_URL']
     const spaDistDir = path.join(this.context.extensionPath, 'dist', 'web')

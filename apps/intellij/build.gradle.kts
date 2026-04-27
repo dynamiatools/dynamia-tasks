@@ -29,6 +29,7 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
     intellijPlatform {
         defaultRepositories()
@@ -47,10 +48,8 @@ dependencies {
         testFramework(TestFrameworkType.Platform)
     }
 
-    // IDE Bridge — IntelliJ implementation (local project during dev)
-    implementation(project(":ide-bridge-intellij"))
-    // OR when consuming from Maven Central:
-    // implementation("tools.dynamia:ide-bridge-intellij:1.0.0")
+
+    implementation("tools.dynamia:ide-bridge-intellij:1.0.0")
 
     // Gson bundled by IntelliJ Platform — compileOnly so it doesn't double-ship
     compileOnly("com.google.code.gson:gson:2.10.1")

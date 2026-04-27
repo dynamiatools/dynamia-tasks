@@ -12,6 +12,7 @@
  */
 
 import { ide } from '@dynamia-tools/ide-bridge'
+import { ConfigService } from './ConfigService.js'
 import type {
   TaskConnector,
   TaskFilter,
@@ -41,15 +42,11 @@ const EMPTY_CAPABILITIES: ConnectorCapabilities = {
   canSubtasks: false, canAssign: false, canLabel: false, hasDetail: false, hasExplorer: false,
 }
 
-const DEFAULT_CONFIG: AppConfig = {
-  connectors: {},
-  ui: { theme: 'dark', groupBy: 'module', defaultView: 'workspace' },
-}
-
 // ── TaskService ───────────────────────────────────────────────────────────────
 
 export class TaskService {
   private readonly registry = new Map<string, TaskConnector>()
+  private readonly configService = new ConfigService()
 
   // ── Registration ───────────────────────────────────────────────────────────
 
@@ -93,23 +90,12 @@ export class TaskService {
 
   // ── Config management ──────────────────────────────────────────────────────
 
-  private configPath(): string {
-    return ide.path.join(ide.env.getHomePath(), '.dynamiatasks', 'config.json')
-  }
-
   async loadConfig(): Promise<AppConfig> {
-    try {
-      const raw = await ide.fs.readFile(this.configPath())
-      return JSON.parse(raw) as AppConfig
-    } catch {
-      return { ...DEFAULT_CONFIG, connectors: {} }
-    }
+    return this.configService.load()
   }
 
   async saveConfig(config: AppConfig): Promise<void> {
-    const dir = ide.path.join(ide.env.getHomePath(), '.dynamiatasks')
-    await ide.fs.mkdir(dir, { recursive: true })
-    await ide.fs.writeFile(this.configPath(), JSON.stringify(config, null, 2))
+    await this.configService.save(config)
   }
 
   async getConnectorConfig(connectorId: string): Promise<unknown> {
