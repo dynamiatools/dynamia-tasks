@@ -19,6 +19,18 @@ Just your tasks, where you code.
 
 ---
 
+## Screenshots
+
+### IntelliJ / JetBrains IDEs
+
+![Dynamia Tasks in IntelliJ](https://raw.githubusercontent.com/dynamiatools/dynamia-tasks/refs/heads/main/screenshots/intellij-worskpace.png)
+
+### VS Code
+
+![Dynamia Tasks in VS Code](https://raw.githubusercontent.com/dynamiatools/dynamia-tasks/refs/heads/main/screenshots/vscode-worskpace.png)
+
+---
+
 ## Install
 
 ### JetBrains IDEs + Android Studio
@@ -26,6 +38,7 @@ Just your tasks, where you code.
 Install from JetBrains Marketplace:
 
 - https://plugins.jetbrains.com/plugin/31430-dynamia-tasks
+
 
 ### VS Code
 

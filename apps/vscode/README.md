@@ -5,6 +5,10 @@
 
 ---
 
+![Dynamia Tasks in VS Code](https://raw.githubusercontent.com/dynamiatools/dynamia-tasks/refs/heads/main/screenshots/vscode-worskpace.png)
+
+---
+
 ## What is Dynamia Tasks?
 
 Dynamia Tasks is a task manager that lives **inside your editor**. Instead of switching between browser tabs, Jira boards, or sticky notes, you get a clean task panel right in VS Code — always visible, always in context.
