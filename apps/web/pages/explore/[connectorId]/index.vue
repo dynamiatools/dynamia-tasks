@@ -35,6 +35,7 @@ onMounted(async () => {
       </header>
 
       <AppSpinner v-if="explorer.loading" />
+      <p v-else-if="explorer.error" class="text-dt-danger text-sm">{{ explorer.error }}</p>
       <p v-else-if="explorer.sources.length === 0" class="text-dt-dim text-sm">No sources found.</p>
       <ul v-else class="space-y-2">
         <li

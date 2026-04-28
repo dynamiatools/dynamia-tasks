@@ -50,11 +50,12 @@
     ]]></description>
 
     <change-notes><![CDATA[
-        <h3>Version 1.0.3</h3>
         <ul>
-            <li>Improved IntelliJ startup flow to initialize Dynamia Tasks more reliably after project load.</li>
-            <li>Enhanced embedded server lifecycle handling and project-to-server registry stability.</li>
-            <li>General UX and performance refinements across the tool window integration.</li>
+           <li><b>New backend</b> powered by <i>DynamiaTools/ide-bridge</i> — Node.js is no longer required</li>
+           <li>Improved UI with better performance and responsiveness</li>
+           <li>Enhanced GitHub Issues integration with more robust error handling</li>
+           <li>New Settings panel with accent color support and improved UX</li>
+           <li>Workspace tab now displays the number of open tasks</li>
         </ul>
     ]]></change-notes>
 
@@ -82,10 +83,6 @@
             isLogByDefault="true"
         />
 
-        <!-- Application-level service holds the per-project server map -->
-        <applicationService
-            serviceImplementation="tools.dynamia.tasks.server.NodeServerRegistry"
-        />
 
         <!-- Modern startup hook (ProjectActivity replaces deprecated ProjectManagerListener) -->
         <postStartupActivity

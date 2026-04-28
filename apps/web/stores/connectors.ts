@@ -1,25 +1,16 @@
 import { defineStore } from 'pinia'
-import type { ConnectorCapabilities } from '@dynamia-tasks/core'
-
-interface ConnectorInfo {
-  id: string
-  name: string
-  icon: string
-  capabilities: ConnectorCapabilities
-  configured: boolean
-}
+import type { ConnectorInfo } from '@dynamia-tasks/core'
 
 export const useConnectorsStore = defineStore('connectors', () => {
   const connectors = ref<ConnectorInfo[]>([])
   const loading = ref(false)
 
-  const api = useApi()
+  const svc = useTaskService()
 
   async function load() {
     loading.value = true
     try {
-      const res = await api.get<{ connectors: ConnectorInfo[] }>('/api/connectors')
-      connectors.value = res.connectors
+      connectors.value = await svc.getConnectors()
     } finally {
       loading.value = false
     }

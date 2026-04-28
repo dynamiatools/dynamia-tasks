@@ -7,6 +7,17 @@ onMounted(() => {
   prefs.load()
 })
 
+const accentPresets = ['#4d9375', '#007ACC','#4A88FF', '#a855f7', '#f97316', '#ef4444']
+
+function onAccentInput(event: Event) {
+  const value = (event.target as HTMLInputElement).value
+  prefs.setAccentColor(value)
+}
+
+function resetAccent() {
+  prefs.setAccentColor('#4d9375')
+}
+
 function applyMode(mode: 'zen' | 'dev' | 'default') {
   if (mode === 'zen') {
     prefs.autoGroups = false
@@ -94,6 +105,41 @@ function applyMode(mode: 'zen' | 'dev' | 'default') {
               <span class="text-sm text-dt-text">Small fonts</span>
               <span class="text-xs text-dt-dim">— smaller text for a more compact look</span>
             </label>
+          </div>
+        </div>
+
+        <div>
+          <p class="text-[11px] font-medium text-dt-dim uppercase tracking-wider mb-2">Theme</p>
+          <div class="space-y-3">
+            <label class="flex items-center gap-3">
+              <span class="text-sm text-dt-text">Accent color</span>
+              <input
+                type="color"
+                :value="prefs.accentColor"
+                @input="onAccentInput"
+                class="h-7 w-10 cursor-pointer rounded border border-dt-border bg-transparent p-0"
+              />
+              <span class="text-xs font-mono text-dt-dim">{{ prefs.accentColor }}</span>
+              <button
+                type="button"
+                class="ml-auto px-2 py-1 text-xs rounded border border-dt-border text-dt-muted hover:border-dt-accent hover:text-white transition-colors"
+                @click="resetAccent"
+              >Reset</button>
+            </label>
+
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-dt-dim">Presets</span>
+              <button
+                v-for="color in accentPresets"
+                :key="color"
+                type="button"
+                class="h-5 w-5 rounded-full border transition-all"
+                :class="prefs.accentColor === color ? 'border-white scale-110' : 'border-dt-border hover:border-dt-muted'"
+                :style="{ backgroundColor: color }"
+                @click="prefs.setAccentColor(color)"
+                :title="color"
+              />
+            </div>
           </div>
         </div>
       </div>

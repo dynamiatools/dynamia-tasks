@@ -14,6 +14,8 @@
   --text-body:    #a0a0a0;
   --accent:       #4d9375;
   --accent-deep:  #1e3a2f;
+  --dt-accent-rgb: 77 147 117;
+  --dt-accent-deep-rgb: 30 58 47;
   --danger:       #f87171;
   --danger-bg:    #3b1f1f;
   --danger-bdr:   #7f1d1d;
@@ -93,4 +95,4 @@ select option {
   text-decoration: none;
   line-height: 1.4;
 }
-.dt-img-link:hover { background: rgba(77,147,117,0.8); color: #fff; }
+.dt-img-link:hover { background: color-mix(in srgb, var(--accent) 80%, transparent); color: #fff; }

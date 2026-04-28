@@ -3,6 +3,7 @@
 
 const configStore = useConfigStore()
 const connectorsStore = useConnectorsStore()
+const svc = useTaskService()
 
 const token = ref('')
 const availableSources = ref<{ id: string; name: string; group?: string }[]>([])
@@ -43,16 +44,18 @@ async function loadRepos() {
   reposError.value = ''
   reposLoaded.value = false
   try {
-    const api = useApi()
-    const res = await api.post<{ sources: any[] }>('/api/connectors/github/probe-sources', { token: t, orgs: [] })
-    availableSources.value = (res.sources ?? []).sort((a: any, b: any) => {
+    const sources = await svc.probeConnectorSources('github', { token: t, orgs: [] })
+    availableSources.value = (sources ?? []).sort((a, b) => {
       const g = (a.group ?? '').localeCompare(b.group ?? '')
       return g !== 0 ? g : a.name.localeCompare(b.name)
     })
     reposLoaded.value = true
-    selectedRepos.value = selectedRepos.value.filter(r => res.sources.some((s: any) => s.id === r))
+    selectedRepos.value = selectedRepos.value.filter(r => sources.some(s => s.id === r))
   } catch (e: any) {
-    reposError.value = e?.data?.message ?? e?.message ?? 'error loading repositories'
+    const message = e?.message ?? 'error loading repositories'
+    reposError.value = message.includes('GitHub API error: 422')
+      ? 'GitHub rejected the repository query (422). Verify PAT scopes: classic `repo`, fine-grained `Metadata` + `Issues`.'
+      : message
     availableSources.value = []
   } finally {
     loadingRepos.value = false
@@ -117,7 +120,11 @@ async function save() {
           placeholder="ghp_…"
           mono
         />
-        <p class="text-xs mt-1 text-dt-dim">GitHub PAT with <code class="font-mono bg-dt-raised px-1 rounded">repo</code> scope</p>
+        <p class="text-xs mt-1 text-dt-dim">
+          GitHub PAT scopes: classic <code class="font-mono bg-dt-raised px-1 rounded">repo</code>,
+          fine-grained <code class="font-mono bg-dt-raised px-1 rounded">Metadata</code> +
+          <code class="font-mono bg-dt-raised px-1 rounded">Issues</code>
+        </p>
       </div>
 
       <!-- ② Repositories -->
@@ -194,7 +201,7 @@ async function save() {
         :loading="saving"
         :disabled="!token.trim()"
         @click="save"
-      >{{ saving ? 'saving…' : 'save' }}</AppButton>
+      >{{ saving ? 'saving…' : 'Save' }}</AppButton>
 
       <Transition name="fade">
         <span v-if="saved" class="text-xs flex items-center gap-1 text-dt-accent">

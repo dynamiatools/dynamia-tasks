@@ -1,15 +1,16 @@
 import { defineStore } from 'pinia'
-import type { ConnectorTask, ConnectorSource } from '@dynamia-tasks/core'
+import type { ConnectorTask, ConnectorSource, TaskFilter } from '@dynamia-tasks/core'
 
 export const useExplorerStore = defineStore('explorer', () => {
   const sources = ref<ConnectorSource[]>([])
   const tasks = ref<ConnectorTask[]>([])
   const loading = ref(false)
+  const error = ref('')
   const query = ref('')
   const status = ref<'open' | 'closed' | 'all'>('open')
   const selectedLabels = ref<string[]>([])
 
-  const api = useApi()
+  const svc = useTaskService()
 
   // All unique labels across loaded tasks
   const availableLabels = computed(() => {
@@ -37,11 +38,12 @@ export const useExplorerStore = defineStore('explorer', () => {
 
   async function loadSources(connectorId: string) {
     loading.value = true
+    error.value = ''
     try {
-      const res = await api.get<{ sources: ConnectorSource[] }>(`/api/connectors/${connectorId}/sources`)
-      sources.value = res.sources
-    } catch {
+      sources.value = await svc.fetchSources(connectorId)
+    } catch (e: any) {
       sources.value = []
+      error.value = e?.message ?? 'failed to load sources'
     } finally {
       loading.value = false
     }
@@ -49,16 +51,16 @@ export const useExplorerStore = defineStore('explorer', () => {
 
   async function loadTasks(connectorId: string, filter?: Record<string, unknown>) {
     loading.value = true
+    error.value = ''
     try {
-      const params = new URLSearchParams()
-      if (filter?.sourceId) params.set('sourceId', String(filter.sourceId))
-      params.set('status', status.value)
-      const res = await api.get<{ tasks: ConnectorTask[] }>(
-        `/api/connectors/${connectorId}/tasks?${params.toString()}`
-      )
-      tasks.value = Array.isArray(res.tasks) ? res.tasks : []
-    } catch {
+      const taskFilter: TaskFilter = {
+        sourceId: filter?.sourceId as string | undefined,
+        status: status.value,
+      }
+      tasks.value = await svc.fetchTasks(connectorId, taskFilter)
+    } catch (e: any) {
       tasks.value = []
+      error.value = e?.message ?? 'failed to load tasks'
     } finally {
       loading.value = false
     }
@@ -67,10 +69,24 @@ export const useExplorerStore = defineStore('explorer', () => {
   function reset() {
     sources.value = []
     tasks.value = []
+    error.value = ''
     query.value = ''
     status.value = 'open'
     selectedLabels.value = []
   }
 
-  return { sources, tasks, filteredTasks, availableLabels, selectedLabels, loading, query, status, loadSources, loadTasks, reset }
+  return {
+    sources,
+    tasks,
+    filteredTasks,
+    availableLabels,
+    selectedLabels,
+    loading,
+    error,
+    query,
+    status,
+    loadSources,
+    loadTasks,
+    reset,
+  }
 })

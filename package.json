@@ -1,20 +1,20 @@
 {
   "name": "dynamia-tasks",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "scripts": {
     "dev": "pnpm --filter @dynamia-tasks/web dev",
     "dev:web": "pnpm --filter @dynamia-tasks/web dev",
     "build": "pnpm --filter @dynamia-tasks/web build",
     "build:web": "pnpm --filter @dynamia-tasks/web build",
-    "build:all": "pnpm -r build",
-    "build:intellij": "pnpm build:all && cd apps/intellij && ./gradlew buildPlugin",
-    "build:vscode": "pnpm build:web && pnpm --filter dynamia-tasks build && pnpm --filter dynamia-tasks package",
-    "start": "pnpm --filter @dynamia-tasks/web start",
+    "build:intellij": "pnpm build && cd apps/intellij && ./gradlew buildPlugin",
+    "build:vscode": "pnpm build && pnpm --filter dynamia-tasks build && pnpm --filter dynamia-tasks package",
     "test": "pnpm -r test"
   },
   "devDependencies": {
     "typescript": "^5.4.5"
   }
 }
+
+
 
