@@ -11,7 +11,6 @@ export default defineNuxtConfig({
   app: {
     head: {
       title: 'Dynamia Tasks',
-      htmlAttrs: { class: 'dark' },
       meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1' }],
     },
   },
@@ -27,16 +26,16 @@ export default defineNuxtConfig({
           colors: {
             dt: {
               // Backgrounds
-              bg:           '#1e1e1e',
-              surface:      '#252526',
-              raised:       '#2d2d30',
+              bg:           'rgb(var(--dt-bg-rgb) / <alpha-value>)',
+              surface:      'rgb(var(--dt-surface-rgb) / <alpha-value>)',
+              raised:       'rgb(var(--dt-raised-rgb) / <alpha-value>)',
               // Borders
-              border:       '#3e3e42',
+              border:       'rgb(var(--dt-border-rgb) / <alpha-value>)',
               // Text
-              text:         '#d4d4d4',
-              muted:        '#858585',
-              dim:          '#6a6a6a',
-              body:         '#a0a0a0',
+              text:         'rgb(var(--dt-text-rgb) / <alpha-value>)',
+              muted:        'rgb(var(--dt-muted-rgb) / <alpha-value>)',
+              dim:          'rgb(var(--dt-dim-rgb) / <alpha-value>)',
+              body:         'rgb(var(--dt-body-rgb) / <alpha-value>)',
               // Accent (runtime via CSS variables)
               accent:       'rgb(var(--dt-accent-rgb) / <alpha-value>)',
               'accent-deep':'rgb(var(--dt-accent-deep-rgb) / <alpha-value>)',

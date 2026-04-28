@@ -4,6 +4,15 @@
 
 /* ── VS Code / IntelliJ-inspired dark palette ─────────────────────────────── */
 :root {
+  --dt-bg-rgb:       30 30 30;
+  --dt-surface-rgb:  37 37 38;
+  --dt-raised-rgb:   45 45 48;
+  --dt-border-rgb:   62 62 66;
+  --dt-text-rgb:     212 212 212;
+  --dt-muted-rgb:    133 133 133;
+  --dt-dim-rgb:      106 106 106;
+  --dt-body-rgb:     160 160 160;
+
   --bg-base:      #1e1e1e;
   --bg-surface:   #252526;
   --bg-raised:    #2d2d30;
