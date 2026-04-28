@@ -1,7 +1,7 @@
 {
   "name": "@dynamia-tasks/web",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.4",
   "scripts": {
     "dev": "nuxt dev --port 3000",
     "build": "nuxt generate",
