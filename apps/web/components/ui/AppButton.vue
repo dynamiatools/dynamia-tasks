@@ -26,13 +26,13 @@ const sizeClass: Record<Size, string> = {
 
 const variantClass: Record<Variant, string> = {
   primary:
-    'bg-dt-accent text-white border-dt-accent hover:opacity-90',
+    'bg-dt-accent text-white border-dt-accent hover:bg-dt-accent/90 hover:border-dt-accent/90',
   ghost:
     'bg-dt-raised text-dt-text border-dt-border hover:border-dt-accent hover:bg-dt-accent-deep hover:text-dt-accent',
   accent:
-    'bg-dt-accent text-white border-dt-accent hover:opacity-90',
+    'bg-dt-accent text-white border-dt-accent hover:bg-dt-accent/90 hover:border-dt-accent/90',
   'accent-outline':
-    'bg-dt-raised text-dt-accent border-dt-border hover:border-dt-accent hover:bg-dt-accent-deep',
+    'bg-dt-accent-deep/20 text-dt-accent border-dt-accent/40 hover:border-dt-accent hover:bg-dt-accent-deep/45',
   danger:
     'bg-dt-raised text-dt-muted border-dt-border hover:border-dt-danger hover:text-dt-danger',
   link:

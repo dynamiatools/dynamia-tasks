@@ -37,9 +37,9 @@ export default defineNuxtConfig({
               muted:        '#858585',
               dim:          '#6a6a6a',
               body:         '#a0a0a0',
-              // Accent (teal)
-              accent:       '#4d9375',
-              'accent-deep':'#1e3a2f',
+              // Accent (runtime via CSS variables)
+              accent:       'rgb(var(--dt-accent-rgb) / <alpha-value>)',
+              'accent-deep':'rgb(var(--dt-accent-deep-rgb) / <alpha-value>)',
               // Status
               danger:       '#f87171',
               'danger-bg':  '#3b1f1f',

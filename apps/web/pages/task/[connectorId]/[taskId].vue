@@ -98,8 +98,18 @@ async function loadTask() {
 
 async function toggleDone() {
   if (!task.value) return
-  const updated = await svc.updateTask(connectorId, taskId, { done: !task.value.done })
-  task.value = { ...task.value, ...updated }
+  const currentTask = task.value
+  const workspaceTask = workspace.items.find(t => t.connectorId === connectorId && t.id === taskId)
+
+  if (workspaceTask) {
+    await workspace.toggleDone(workspaceTask)
+    const refreshed = workspace.items.find(t => t.connectorId === connectorId && t.id === taskId)
+    task.value = refreshed ? { ...currentTask, ...refreshed } : { ...currentTask, done: !currentTask.done }
+    return
+  }
+
+  const updated = await svc.updateTask(connectorId, taskId, { done: !currentTask.done })
+  task.value = { ...currentTask, ...updated }
 }
 
 async function saveEdit() {
@@ -111,6 +121,7 @@ async function saveEdit() {
   })
   task.value = { ...task.value, ...updated }
   editing.value = false
+
 }
 
 async function submitComment(): Promise<boolean> {
@@ -233,7 +244,7 @@ async function confirmRemoveFromWorkspace() {
           <button
             @click="toggleDone"
             class="mt-1 shrink-0 transition-colors"
-            :class="task.done ? 'text-dt-accent' : 'text-dt-dim'"
+            :class="task.done ? 'text-dt-accent hover:text-dt-accent/80' : 'text-dt-dim hover:text-dt-accent'"
           >
             <TaskStatusIcon :done="task.done" size="size-4" />
           </button>

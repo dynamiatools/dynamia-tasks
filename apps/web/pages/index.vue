@@ -315,7 +315,7 @@ function cancelRemoveTask() {
           <NuxtLink
             to="/task/new"
             class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md border
-                 bg-dt-raised text-dt-accent border-dt-border hover:border-dt-accent hover:bg-dt-accent-deep transition-all"
+                 bg-dt-accent-deep/20 text-dt-accent border-dt-accent/40 hover:border-dt-accent hover:bg-dt-accent-deep/45 transition-all"
           >
             <PlusIcon class="size-3" />
             New Task
@@ -393,7 +393,7 @@ function cancelRemoveTask() {
               <!-- done toggle -->
               <button
                 class="mt-0.5 shrink-0 transition-colors"
-                :class="task.done ? 'text-dt-accent hover:text-dt-accent/80' : 'text-dt-dim hover:text-dt-text'"
+                :class="task.done ? 'text-dt-accent hover:text-dt-accent/80' : 'text-dt-dim hover:text-dt-accent'"
                 @click="workspace.toggleDone(task)"
                 :title="task.done ? 'Mark open' : 'Mark done'"
               >
@@ -475,7 +475,7 @@ function cancelRemoveTask() {
           <!-- done toggle -->
           <button
             class="mt-0.5 shrink-0 transition-colors"
-            :class="task.done ? 'text-dt-accent hover:text-dt-accent/80' : 'text-dt-dim hover:text-dt-text'"
+            :class="task.done ? 'text-dt-accent hover:text-dt-accent/80' : 'text-dt-dim hover:text-dt-accent'"
             @click="workspace.toggleDone(task)"
             :title="task.done ? 'Mark open' : 'Mark done'"
           >

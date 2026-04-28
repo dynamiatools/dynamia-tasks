@@ -4,6 +4,7 @@ import { ArrowLeftIcon } from '@heroicons/vue/20/solid'
 
 const svc = useTaskService()
 const router = useRouter()
+const workspace = useWorkspaceStore()
 
 const connectors = ref<ConnectorInfo[]>([])
 const sources = ref<ConnectorSource[]>([])
@@ -103,9 +104,7 @@ async function submit() {
       priority: priority.value || undefined,
       sourceId: selectedSourceId.value || undefined,
     })
-    try {
-      await svc.addToWorkspace(created.connectorId, created.id)
-    } catch { /* non-fatal */ }
+    await workspace.addTask(created.connectorId, created.id, created)
     await router.push('/')
   } catch (e: any) {
     error.value = e?.message ?? 'Failed to create task'
