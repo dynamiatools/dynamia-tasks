@@ -86,16 +86,21 @@ function scheduleAutoSave() {
   autoSaveTimer = setTimeout(() => save(), 800)
 }
 
+function buildSerializableConfig(): { token: string; repos: string[] } {
+  return {
+    token: token.value.trim(),
+    repos: Array.from(selectedRepos.value, (repo) => String(repo)),
+  }
+}
+
 async function save() {
-  if (!token.value.trim()) return
+  const payload = buildSerializableConfig()
+  if (!payload.token) return
   saving.value = true
   saveError.value = ''
   saved.value = false
   try {
-    await configStore.saveConnectorConfig('github', {
-      token: token.value.trim(),
-      repos: selectedRepos.value,
-    })
+    await configStore.saveConnectorConfig('github', payload)
     await connectorsStore.load()
     saved.value = true
     setTimeout(() => { saved.value = false }, 2000)
