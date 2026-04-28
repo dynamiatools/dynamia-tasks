@@ -21,5 +21,5 @@ class DynamiaTasksPanel(project: Project) {
         resourceBasePath    = "web",
         devUrlEnvVar        = "DYNAMIA_DEV_URL",
         resourceClassLoader = DynamiaTasksPanel::class.java.classLoader,
-    ).setDebugMode(true)
+    )
 }
