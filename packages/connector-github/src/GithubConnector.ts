@@ -312,7 +312,21 @@ export class GithubConnector implements TaskConnector {
       })
       if (res.status === 401) throw Object.assign(new Error('GitHub auth failed'), { code: 'UPSTREAM_AUTH_FAILED' })
       if (res.status === 403) throw Object.assign(new Error('GitHub rate limited'), { code: 'UPSTREAM_RATE_LIMITED' })
-      if (!res.ok) throw new Error(`GitHub API error: ${res.status}`)
+      if (!res.ok) {
+        let detail = ''
+        try {
+          const payload = await res.json() as { message?: string; errors?: Array<{ message?: string }> }
+          const messages = [payload?.message, ...(payload?.errors?.map(e => e.message).filter(Boolean) ?? [])]
+          if (messages.length) detail = ` - ${messages.join('; ')}`
+        } catch {
+          // Ignore non-JSON API errors and keep the generic status message.
+        }
+        const error = new Error(`GitHub API error: ${res.status}${detail}`)
+        if (res.status === 422) {
+          throw Object.assign(error, { code: 'UPSTREAM_VALIDATION_FAILED' })
+        }
+        throw error
+      }
       return res.json() as Promise<T>
     }
 
@@ -329,6 +343,23 @@ export class GithubConnector implements TaskConnector {
       return all
     }
 
+    const fetchAllPagesWithFallback = async (baseUrls: string[]): Promise<GhRepo[]> => {
+      let lastValidationError: Error | null = null
+      for (const baseUrl of baseUrls) {
+        try {
+          return await fetchAllPages(baseUrl)
+        } catch (e) {
+          const err = e as Error & { code?: string }
+          if (err.code === 'UPSTREAM_VALIDATION_FAILED') {
+            lastValidationError = err
+            continue
+          }
+          throw err
+        }
+      }
+      throw (lastValidationError ?? new Error('GitHub API error: 422'))
+    }
+
     const sources: ConnectorSource[] = []
 
     if (orgs.length > 0) {
@@ -341,9 +372,11 @@ export class GithubConnector implements TaskConnector {
         }
       }
     } else {
-      const repos = await fetchAllPages(
-        '/user/repos?sort=updated&type=all&visibility=all&affiliation=owner,collaborator,organization_member'
-      )
+      const repos = await fetchAllPagesWithFallback([
+        '/user/repos?sort=updated&affiliation=owner,collaborator,organization_member',
+        '/user/repos?sort=updated&type=all',
+        '/user/repos?sort=updated',
+      ])
       repos.forEach(r => sources.push({ id: r.full_name, name: r.name, group: r.owner.login }))
     }
 
