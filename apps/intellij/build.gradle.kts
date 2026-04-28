@@ -86,7 +86,8 @@ intellijPlatform {
 // ── Copy bundled Nuxt SPA into plugin resources ───────────────────────────────
 // The SPA is now pure static (no Nitro server). We only copy .output/public/.
 
-val nuxtPublicDir = file("${rootProject.projectDir}/../../apps/web/.output/public")
+val nuxtPublicDir = file("${rootProject.projectDir}/../web/.output/public")
+println("nuxtPublicDir: $nuxtPublicDir")
 val generatedResources = layout.buildDirectory.dir("generated-resources")
 
 tasks.register<Copy>("copyNuxtSpa") {
