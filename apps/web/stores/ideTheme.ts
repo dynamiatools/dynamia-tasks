@@ -144,7 +144,16 @@ export const useIdeThemeStore = defineStore('ideTheme', () => {
     if (!process.client) return
     if (unsubscribeTheme) return
 
-    unsubscribeTheme = ide.ui.onThemeChange((theme) => {
+    const onThemeChange = (ide.ui as { onThemeChange?: (listener: (theme: IdeThemeSnapshot) => void) => () => void }).onThemeChange
+
+    // Backward compatibility: older bridge builds may not expose onThemeChange yet.
+    if (typeof onThemeChange !== 'function') {
+      console.warn('[ideTheme] ide.ui.onThemeChange is not available; using snapshot-only sync')
+      void syncFromIde()
+      return
+    }
+
+    unsubscribeTheme = onThemeChange((theme) => {
       applySnapshot(theme)
     })
   }

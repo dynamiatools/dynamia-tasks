@@ -21,5 +21,7 @@ class DynamiaTasksPanel(project: Project) {
         resourceBasePath    = "web",
         devUrlEnvVar        = "DYNAMIA_DEV_URL",
         resourceClassLoader = DynamiaTasksPanel::class.java.classLoader,
+        notificationGroupId = "DynamiaTasks",
+        notificationDisplayName = "Dynamia Tasks",
     )
 }

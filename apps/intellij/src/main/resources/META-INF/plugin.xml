@@ -51,11 +51,10 @@
 
     <change-notes><![CDATA[
         <ul>
-           <li><b>New backend</b> powered by <i>DynamiaTools/ide-bridge</i> — Node.js is no longer required</li>
-           <li>Improved UI with better performance and responsiveness</li>
-           <li>Enhanced GitHub Issues integration with more robust error handling</li>
-           <li>New Settings panel with accent color support and improved UX</li>
-           <li>Workspace tab now displays the number of open tasks</li>
+           <li>Minor fixes and stability improvements</li>
+           <li>Added IDE theme color detection for a more consistent UI</li>
+           <li>Fixed task drag-and-drop reordering</li>
+           <li>Fixed webview support for clipboard and file links</li>
         </ul>
     ]]></change-notes>
 
