@@ -51,10 +51,9 @@
 
     <change-notes><![CDATA[
         <ul>
-           <li>Minor fixes and stability improvements</li>
-           <li>Added IDE theme color detection for a more consistent UI</li>
-           <li>Fixed task drag-and-drop reordering</li>
-           <li>Fixed webview support for clipboard and file links</li>
+           <li>Performance and stability improvements across the plugin</li>
+           <li>Updated ide-bridge with native clipboard support</li>
+           <li>Added copy/paste action buttons to all input fields and text areas</li>
         </ul>
     ]]></change-notes>
 
@@ -92,4 +91,3 @@
 
 
 </idea-plugin>
-
