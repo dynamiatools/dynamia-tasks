@@ -119,11 +119,11 @@ async function save() {
       <!-- ① Token -->
       <div>
         <label class="block text-xs mb-1 text-dt-muted">Personal Access Token *</label>
-        <AppInput
+        <AppInputBox
           v-model="token"
           type="password"
           placeholder="ghp_…"
-          mono
+          with-clipboard
         />
         <p class="text-xs mt-1 text-dt-dim">
           GitHub PAT scopes: classic <code class="font-mono bg-dt-raised px-1 rounded">repo</code>,

@@ -189,7 +189,7 @@ async function submit() {
               <label class="block text-xs mb-1.5 text-dt-body">
                 Title <span class="text-dt-danger">*</span>
               </label>
-              <AppInputBox v-model="title" placeholder="Task title…" />
+              <AppInputBox v-model="title" placeholder="Task title…" with-clipboard />
             </div>
 
             <!-- Description -->
@@ -200,6 +200,7 @@ async function submit() {
                 placeholder="Describe the task (markdown supported)…"
                 :rows="5"
                 mono
+                with-clipboard
               />
             </div>
 
