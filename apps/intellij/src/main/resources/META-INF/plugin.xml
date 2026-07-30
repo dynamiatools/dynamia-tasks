@@ -25,8 +25,9 @@
             You can view, create, edit, comment, and close issues without ever opening a browser tab.
         </p>
         <p>
-            To enable it, generate a <b>GitHub Personal Access Token (classic)</b> with the <code>repo</code> scope
-            (or <code>public_repo</code> for public repositories only) at
+            To enable it, generate a <b>GitHub Personal Access Token</b> — classic token with the <code>repo</code> scope
+            (add <code>read:org</code> too if you want to browse organization repositories), or a fine-grained token
+            with <code>Metadata</code> + <code>Issues</code> permissions — at
             <a href="https://github.com/settings/tokens">github.com/settings/tokens</a>,
             then paste it in <b>Settings &rarr; Dynamia Tasks &rarr; GitHub Issues &rarr; Personal Access Token</b>.
             The token is stored locally on your machine and never sent to any external server.

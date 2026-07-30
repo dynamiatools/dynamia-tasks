@@ -1,7 +1,7 @@
 # GitHub Copilot Instructions — Dynamia Tasks
 
 > This file provides context for GitHub Copilot and other AI assistants working on this repository.
-> For the full architecture reference see [ARCHITECTURE.md](../ARCHITECTURE.md).
+> See also [CLAUDE.md](../CLAUDE.md) for a peer-review-oriented summary of architecture and known issues.
 
 ---
 
@@ -10,9 +10,9 @@
 Dynamia Tasks is a **developer-first, local-only task manager** that runs as a plugin for IntelliJ IDEA and VS Code. It unifies tasks from multiple sources (GitHub Issues, local JSON files, and any third-party tool via the Connector system) into a single minimal checklist UI embedded in the IDE.
 
 - **No cloud. No telemetry. No accounts.** Everything runs locally.
-- **UI:** Nuxt 3 SPA (static, SPA mode) served by the local Node server.
-- **Server:** Node.js + Nuxt Nitro (replaces the old Fastify server), runs per-project.
-- **IDE hosts:** IntelliJ IDEA (JCEF WebView) and VS Code (WebviewPanel).
+- **UI:** Nuxt 3 SPA, built statically (`ssr: false`, `nuxt generate`) and bundled into each IDE plugin. **There is no server** — no Nitro API, no child process, no HTTP layer of any kind.
+- **Data access:** connectors run client-side, inside the webview's own JS context, and call `ide.fs` / `ide.store` / `ide.env` (the [ide-bridge](../../ide-bridge) library) directly.
+- **IDE hosts:** IntelliJ IDEA (JCEF WebView) and VS Code (WebviewView).
 - **Extensibility:** Connector system — new task sources are first-class citizens.
 
 ---
@@ -22,11 +22,11 @@ Dynamia Tasks is a **developer-first, local-only task manager** that runs as a p
 ```
 dynamia-tasks/
 ├── packages/
-│   ├── core/               # Shared TypeScript types + TaskConnector interface
+│   ├── core/               # Shared TypeScript types, TaskConnector interface, TaskService, ConfigService
 │   ├── connector-local/    # Built-in: reads/writes .tasks/*.json
-│   └── connector-github/   # Built-in: GitHub Issues REST API
+│   └── connector-github/   # Built-in: GitHub Issues REST API (client-side fetch, no octokit)
 └── apps/
-    ├── web/                # Nuxt 3 SPA + Nitro server (replaces packages/server)
+    ├── web/                # Nuxt 3 SPA (static build only, no Nitro server routes)
     ├── vscode/             # VS Code extension (TypeScript + esbuild)
     └── intellij/           # IntelliJ plugin (Kotlin + Gradle)
 ```
@@ -34,41 +34,42 @@ dynamia-tasks/
 **Dependency graph:**
 
 ```
-apps/web        → packages/core, packages/connector-local, packages/connector-github
-apps/vscode     → apps/web (bundles server output)
-apps/intellij   → apps/web (bundles Nuxt .output/)
+apps/web        → packages/core, packages/connector-local, packages/connector-github, ide-bridge (external sibling repo)
+apps/vscode     → apps/web (bundles static .output/public/), ide-bridge-vscode (external)
+apps/intellij   → apps/web (bundles static .output/public/), ide-bridge-intellij (external, published Maven artifact)
 packages/connector-local   → packages/core
 packages/connector-github  → packages/core
-packages/core              → (no internal deps)
+packages/core              → ide-bridge (external, file: dependency)
 ```
+
+The `ide-bridge` project is a **separate sibling git repository** (`../ide-bridge` relative to this repo), referenced via `file:` dependencies at exact relative paths. This repo cannot build standalone without that sibling checked out alongside it.
 
 ---
 
 ## Core Rules — Always Follow
 
-1. **No cloud backend.** The server (`apps/web` Nitro) runs entirely on the developer's machine.
-2. **Never use `localStorage`** for config or tokens. Use the API: `PUT /api/config/connectors/:id`.
+1. **No cloud backend, no server process.** All task/config/workspace logic runs in the webview via `TaskService` (`packages/core/src/TaskService.ts`), calling connectors directly.
+2. **Never use `localStorage`** for config or tokens. Config goes through `ConfigService`, which persists via `ide.store` (see "Known Issue" below — this is not currently encrypted).
 3. **Never check `connectorId` in the SPA.** Use `task.capabilities.*` to gate features:
    ```vue
    <CommentsSection v-if="task.capabilities.canComment" ... />
    ```
 4. **All types come from `packages/core/src/types.ts`.** Do not duplicate type definitions anywhere.
-5. **All task operations go through the server API** (`/api/connectors/:id/*`). The SPA never imports connector packages directly.
+5. **All task operations go through `taskService`** (`packages/core/src/TaskService.ts`, exposed via `useTaskService()` in `apps/web/composables/useTaskService.ts`). The SPA registers connector instances directly in `apps/web/plugins/connectors.client.ts` — there is no server API to route through.
 6. **Local task IDs must use `"local-{uuid}"` format.** Always use `crypto.randomUUID()`.
-7. **Workspace items are references, never copies.** Only `{ connectorId, taskId }` stored in `workspace.json`.
-8. **New connectors require zero changes** to `core`, `web`, `vscode`, or `intellij` — only add a new `packages/connector-{name}/` package.
-9. **SPA `apiBase` defaults to `""` (same-origin).** When served by Nitro, the SPA calls `window.location.origin`. Set `NUXT_PUBLIC_API_BASE=http://localhost:7842` only for standalone dev (`nuxt dev` ≠ Nitro).
+7. **Workspace items are references, never copies.** Only `{ connectorId, taskId, order, addedAt }` stored in `{projectRoot}/.dynamiatasks/workspace.json`.
+8. **New connectors require zero changes** to `core`, `vscode`, or `intellij` — add a new `packages/connector-{name}/` package and register it in `apps/web/plugins/connectors.client.ts`.
+9. **`bridge.client.ts` must run before `connectors.client.ts`.** Nuxt plugins execute in alphabetical order (`b` < `c`), which is why the bridge init file is named that way — don't rename it without preserving the ordering.
 
 ---
 
 ## TypeScript / Nuxt (apps/web)
 
-- Framework: **Nuxt 3**, SPA mode (`ssr: false`), Nitro for server routes.
-- Styling: **Tailwind CSS** with the custom `dt-*` color palette (defined in `nuxt.config.ts`).
-- State: **Pinia** stores in `stores/` — `connectors`, `config`, `workspace`, `explorer`, `preferences`.
-- API calls: always use the `useApi()` composable from `composables/useApi.ts`.
-- Components: PascalCase Vue SFCs. All auto-imported (no explicit imports needed).
-- Server routes (`server/api/`) are Nitro handlers; they replace the old standalone Fastify server.
+- Framework: **Nuxt 3**, SPA mode (`ssr: false`). `nuxt generate` produces a static site in `.output/public/` — there are no `server/api/*` routes.
+- Styling: **Tailwind CSS** with a custom `dt-*` color palette (`nuxt.config.ts`).
+- State: **Pinia** stores in `stores/` — `connectors`, `config`, `workspace`, `explorer`, `preferences`, `ideTheme`.
+- Data access: call `useTaskService()` (wraps the `taskService` singleton from `@dynamia-tasks/core`) — never call a connector class directly from a component.
+- Components: PascalCase Vue SFCs, auto-imported (no explicit imports needed).
 - Do **not** add new `<script setup>` imports for stores/composables — Nuxt auto-imports them.
 
 ### Capability-Driven UI Pattern
@@ -119,20 +120,23 @@ export class MyConnector implements TaskConnector {
 }
 ```
 
-3. Register in the server connector registry. For Nuxt, this is in `apps/web/server/plugins/connectors.ts` (or equivalent server plugin).
-4. ✅ Done — the SPA, workspace, and IDE plugins work automatically.
+3. Register it in `apps/web/plugins/connectors.client.ts`:
+   ```typescript
+   svc.register(new MyConnector())
+   ```
+4. Done — the SPA, workspace, and both IDE plugins pick it up automatically (they all bundle the same built SPA).
 
 ### `TaskConnector` Interface (summary)
 
 | Method | Required | Notes |
 |---|---|---|
-| `isConfigured()` | ✅ | Returns `true` if connector is ready to use |
-| `configure(config)` | ✅ | Receives the connector's config object |
-| `getConfigSchema()` | ✅ | Drives the auto-rendered Settings form |
-| `fetchTasks(filter?)` | ✅ | Returns `ConnectorTask[]` |
-| `getTask(id)` | ✅ | Returns single `ConnectorTask` |
-| `updateTask(id, patch)` | ✅ | Returns updated `ConnectorTask` |
-| `createTask(task)` | ✅ if `canCreate` | Returns new `ConnectorTask` |
+| `isConfigured()` | Yes | Returns `true` if connector is ready to use |
+| `configure(config)` | Yes | Receives the connector's config object |
+| `getConfigSchema()` | Yes | Drives the auto-rendered Settings form |
+| `fetchTasks(filter?)` | Yes | Returns `ConnectorTask[]` |
+| `getTask(id)` | Yes | Returns single `ConnectorTask` |
+| `updateTask(id, patch)` | Yes | Returns updated `ConnectorTask` |
+| `createTask(task)` | Yes if `canCreate` | Returns new `ConnectorTask` |
 | `deleteTask?(id)` | Optional | Guard with `canDelete` |
 | `fetchComments?(id)` | Optional | Guard with `canComment` |
 | `addComment?(id, body)` | Optional | Guard with `canComment` |
@@ -154,54 +158,24 @@ Key models:
 
 ---
 
-## Server API Routes
-
-The Nuxt Nitro server exposes the full API. All routes are prefixed `/api/`:
-
-| Category | Route | Method |
-|---|---|---|
-| Connectors | `/api/connectors` | `GET` |
-| Connectors | `/api/connectors/:id/schema` | `GET` |
-| Config | `/api/config` | `GET`, `PUT` |
-| Config | `/api/config/connectors/:id` | `GET`, `PUT` |
-| Tasks | `/api/connectors/:id/tasks` | `GET`, `POST` |
-| Tasks | `/api/connectors/:id/tasks/:taskId` | `GET`, `PATCH`, `DELETE` |
-| Comments | `/api/connectors/:id/tasks/:taskId/comments` | `GET`, `POST` |
-| Subtasks | `/api/connectors/:id/tasks/:taskId/subtasks` | `GET`, `POST`, `DELETE` |
-| Sources | `/api/connectors/:id/sources` | `GET` |
-| Workspace | `/api/workspace` | `GET` |
-| Workspace | `/api/workspace/add` | `POST` |
-| Workspace | `/api/workspace/:connectorId/:taskId` | `DELETE` |
-| Workspace | `/api/workspace/reorder` | `PATCH` |
-| IDE | `/api/ide/open-file` | `POST` |
-| IDE | `/api/ide/notify` | `POST` |
-| Instance | `/api/instance` | `GET` |
-
-**Error response shape:**
-```json
-{ "error": true, "message": "Human readable message", "code": "ERROR_CODE" }
-```
-
-Common codes: `CONNECTOR_NOT_FOUND`, `CONNECTOR_NOT_CONFIGURED`, `CAPABILITY_NOT_SUPPORTED`, `TASK_NOT_FOUND`, `UPSTREAM_AUTH_FAILED`, `CACHE_ONLY`.
-
----
-
 ## File System Conventions
 
 ```
-~/.dynamiatasks/
-├── config.json                          # Global config (tokens, UI prefs)
-├── instances/<sha1(projectPath)[:12]>.json  # Port + PID registry per project
-└── cache/{connectorId}-{sourceId}.json  # Offline cache
+ide.store (global scope, key "dynamiatasks.config.{platform}")
+└── AppConfig                             # tokens, UI prefs — see ConfigService.ts
+
+~/.dynamiatasks/config.json                # legacy config location, read-only migration fallback
+                                            # (only used if ide.store has nothing yet; then re-saved into ide.store)
 
 {projectRoot}/
-├── .dynamiatasks/workspace.json         # This project's task list (gitignore)
-└── .tasks/*.json                        # Local connector task files (committable)
+├── .dynamiatasks/workspace.json          # this project's workspace list (gitignored)
+└── .tasks/*.json                          # local connector task files (committable)
 ```
 
 - Local task files are **plain JSON arrays** of `ConnectorTask`-compatible objects.
 - IDs must be globally unique: `"local-{uuid}"`.
-- Syntax errors in `.tasks/*.json` must not crash the server — skip + log warning.
+- Syntax errors in `.tasks/*.json` must not crash the app — `LocalConnector` skips the file and logs a warning (`console.warn`).
+- **Known stray directory:** a `.dynamia/tasks/workspace.json` may exist from an earlier naming scheme — current code never writes there. If you see it, it's leftover state, not something to preserve or extend.
 
 ---
 
@@ -213,47 +187,42 @@ Common codes: `CONNECTOR_NOT_FOUND`, `CONNECTOR_NOT_CONFIGURED`, `CAPABILITY_NOT
 | Connector class | `{Name}Connector` | `JiraConnector` |
 | Connector id | lowercase kebab | `"jira-cloud"` |
 | Task ID (local) | `local-{uuid}` | `local-f3a1c2b4` |
-| Task ID (github) | `{num}@{owner}/{repo}` | `142@org/repo` |
 | Vue components | PascalCase | `TaskItem.vue` |
 | Pinia stores | `use*Store` | `useWorkspaceStore` |
-| API routes | kebab-case | `/api/connectors/:id/sub-tasks` |
-| Nuxt server routes | `server/api/**` | `server/api/workspace/index.get.ts` |
 
 ---
 
 ## IntelliJ Plugin (apps/intellij)
 
-- Language: **Kotlin**, build system: **Gradle** with IntelliJ Platform Plugin SDK.
+- Language: **Kotlin**, build system: **Gradle** with IntelliJ Platform Gradle Plugin.
 - Min IDE version: `2025.1` (build `251`).
-- The plugin spawns the Nuxt Nitro server as a child Node process via `ProcessBuilder`.
-- Port discovery: parse stdout line `✓ dynamia-tasks server running on http://localhost:<PORT>` or read `~/.dynamiatasks/instances/<hash>.json`.
-- JCEF panel injects `window.__dynamia_host = 'intellij'` before page load.
-- IDE callback server handles `POST /ide/open-file` and `POST /ide/notify`.
-- **Do NOT pass `--port`** to the server — let it auto-select.
-
----
+- **No server, no child process.** `DynamiaTasksStartupListener.kt` runs on project open; `DynamiaTasksWindowFactory.kt`/`DynamiaTasksPanel.kt` host a JCEF panel that loads the bundled static SPA directly from plugin resources via `ide-bridge-intellij`.
+- Bridge (fs/store/clipboard/shell/theme) comes from the external `tools.dynamia:ide-bridge-intellij` Maven artifact, not from anything in this repo.
 
 ## VS Code Extension (apps/vscode)
 
 - Language: **TypeScript**, bundler: **esbuild** via `build.mjs`.
-- Activation: `onStartupFinished`.
-- The extension spawns the Nuxt Nitro server, discovers its port, then opens a `WebviewPanel` (sidebar `dynamia-tasks.view`).
-- Injects `window.__dynamia_host = 'vscode'`.
-- IDE callback server on an auto-selected port (from 7843) handles file-open and notifications.
-- **Do NOT pass `--port`** to the server — let it auto-select.
+- Activation: `onStartupFinished` (see `src/extension.ts`).
+- **No server, no child process.** `DynamiaWebView` (from the external `@dynamia-tools/ide-bridge-vscode` package) hosts a `WebviewView` (`dynamia-tasks.view`) that loads the bundled static SPA directly.
+
+---
+
+## GitHub Connector Auth
+
+Classic Personal Access Token only, entered by the user in Settings (`GithubConnector.getConfigSchema()`), used directly in a `fetch` call from inside the webview (`Authorization: Bearer <token>`). No OAuth, no GitHub App, no `gh` CLI. Recommended scope per the connector's own help text: classic PAT with `repo` scope, or a fine-grained PAT with `Metadata` + `Issues` read/write — keep `README.md` and `plugin.xml` consistent with this if you touch scope guidance.
+
+The token is persisted via `ide.secrets` (OS-keychain-backed: VS Code `SecretStorage`, IntelliJ `PasswordSafe`), not the generic `ide.store`. `TaskService` routes this automatically for any config field marked `type: 'password'` in the connector's schema — see `CLAUDE.md` for how the split/migration works.
 
 ---
 
 ## Testing Checklist
 
-Before submitting a PR, verify:
+There is no automated test suite or CI in this repo (see `CLAUDE.md`). Before submitting a PR, manually verify:
 
 - [ ] Works with only `local` connector (no GitHub token)
 - [ ] Works with only `github` connector (no `.tasks/` folder)
 - [ ] Both connectors active simultaneously in the same workspace
 - [ ] Capabilities gate UI correctly (`local` tasks show no Comments section)
-- [ ] Server returns `CAPABILITY_NOT_SUPPORTED` for unsupported operations
 - [ ] Workspace handles gracefully a connector that is no longer configured
-- [ ] `.tasks/*.json` syntax errors don't crash the server
-- [ ] GitHub rate limit falls back to cache with `CACHE_ONLY` code
+- [ ] `.tasks/*.json` syntax errors don't crash the app
 - [ ] Empty workspace shows empty state + CTA to open Explorer

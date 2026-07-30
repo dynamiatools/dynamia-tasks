@@ -48,12 +48,11 @@ Try at least one scenario per row when possible:
 
 ### Core Scenarios to Validate
 
-- Open plugin view and verify server starts correctly
+- Open plugin view and verify the webview loads correctly
 - Configure only `local` connector and manage local tasks
 - Configure only `github` connector and browse/manage issues
 - Use both connectors at the same time in one workspace
 - Verify capability-driven UI behavior (for example, no comments for local tasks)
-- Validate offline behavior and cache fallback when network is unavailable
 
 When reporting test results, include:
 
@@ -77,7 +76,7 @@ Use this structure in your issue:
 - **Expected result**
 - **Actual result**
 - **Environment**: OS, IDE, plugin version, Node.js version
-- **Logs/screenshots**: include errors from IDE logs, extension host logs, or server output
+- **Logs/screenshots**: include errors from IDE logs, extension host logs, or the webview console
 - **Sample data**: minimal `.tasks/*.json` or config snippet if relevant
 
 ### Issue Types
@@ -114,9 +113,9 @@ Requirements:
 - Full required methods implemented (`fetchTasks`, `getTask`, `updateTask`, `createTask`, ...)
 - Optional methods only when capability is supported
 
-### 3) Register in Server Registry
+### 3) Register the Connector
 
-Register your connector in `apps/web/server/utils/registry.ts`.
+Register it in `apps/web/plugins/connectors.client.ts` (`svc.register(new MyConnector())`). There is no server-side registry — connectors run client-side inside the webview and are wired up directly at startup.
 
 ### 4) Validate Behavior
 
@@ -126,7 +125,7 @@ Register your connector in `apps/web/server/utils/registry.ts`.
 
 ### 5) Add Documentation
 
-Update `README.md` (user-facing) and `ARCHITECTURE.md` (technical) if behavior or setup changes.
+Update `README.md` (user-facing) and `.github/copilot-instructions.md` / `CLAUDE.md` (technical/architecture) if behavior or setup changes.
 
 ## Open a Pull Request
 
@@ -151,11 +150,11 @@ Use the default GitHub flow:
 
 Please follow repository architecture and coding rules:
 
-- Read `ARCHITECTURE.md`
-- Keep the app local-first (no cloud backend)
+- Read `.github/copilot-instructions.md` and `CLAUDE.md` for the current architecture (there is no server — connectors run client-side inside the webview)
+- Keep the app local-first (no cloud backend, no server process)
 - Do not use `localStorage` for connector config or tokens
 - Keep task-related types in `packages/core/src/types.ts`
-- Route task operations through server API (no direct connector usage in SPA)
+- Route task operations through `taskService` (`packages/core/src/TaskService.ts`) — don't call a connector directly from a Vue component
 - Use capability-driven UI checks instead of connector-id checks
 
 Thanks again for contributing to Dynamia Tasks.

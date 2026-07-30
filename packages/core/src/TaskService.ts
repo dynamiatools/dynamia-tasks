@@ -61,10 +61,11 @@ export class TaskService {
   async init(): Promise<void> {
     const config = await this.loadConfig()
     for (const [id, connector] of this.registry) {
-      const connectorConfig = config.connectors[id]
-      if (connectorConfig !== undefined) {
-        await connector.configure(connectorConfig)
-      }
+      const atRest = config.connectors[id]
+      if (atRest === undefined) continue
+      const { merged, migrated, stripped } = await this.mergeSecrets(id, atRest as Record<string, unknown>)
+      if (migrated) await this.persistStrippedConfig(id, stripped)
+      await connector.configure(merged)
     }
   }
 
@@ -100,15 +101,87 @@ export class TaskService {
 
   async getConnectorConfig(connectorId: string): Promise<unknown> {
     const config = await this.loadConfig()
-    return config.connectors[connectorId] ?? {}
+    const atRest = (config.connectors[connectorId] ?? {}) as Record<string, unknown>
+    const { merged, migrated, stripped } = await this.mergeSecrets(connectorId, atRest)
+    if (migrated) await this.persistStrippedConfig(connectorId, stripped)
+    return merged
   }
 
   async saveConnectorConfig(connectorId: string, data: unknown): Promise<void> {
+    const record = { ...(data as Record<string, unknown> ?? {}) }
+    const atRest = { ...record }
+    for (const field of this.secretFieldKeys(connectorId)) {
+      const value = record[field]
+      delete atRest[field]
+      if (value === undefined || value === null || value === '') {
+        await ide.secrets.delete(this.secretStoreKey(connectorId, field))
+      } else {
+        await ide.secrets.set(this.secretStoreKey(connectorId, field), String(value))
+      }
+    }
+
     const config = await this.loadConfig()
-    config.connectors[connectorId] = data
+    config.connectors[connectorId] = atRest
     await this.saveConfig(config)
+
     const connector = this.registry.get(connectorId)
-    if (connector) await connector.configure(data)
+    if (connector) {
+      const { merged } = await this.mergeSecrets(connectorId, atRest)
+      await connector.configure(merged)
+    }
+  }
+
+  /**
+   * Connector config fields declared as `type: 'password'` in the schema are
+   * never persisted inline in `AppConfig` — they're stored via `ide.secrets`
+   * (OS-keychain-backed) instead, keyed per connector+field.
+   */
+  private secretFieldKeys(connectorId: string): string[] {
+    try {
+      return this.getSchema(connectorId).fields
+        .filter((f) => f.type === 'password')
+        .map((f) => f.key)
+    } catch {
+      return []
+    }
+  }
+
+  private secretStoreKey(connectorId: string, field: string): string {
+    return `dynamiatasks.secret.${connectorId}.${field}`
+  }
+
+  /**
+   * Combines an at-rest connector config (secret fields stripped) with the
+   * secret values from `ide.secrets`. If a secret field is still found inline
+   * in `atRest` (legacy plaintext data from before secrets were split out),
+   * it's migrated into `ide.secrets` and reported via `migrated`/`stripped`.
+   */
+  private async mergeSecrets(
+    connectorId: string,
+    atRest: Record<string, unknown>,
+  ): Promise<{ merged: Record<string, unknown>; migrated: boolean; stripped: Record<string, unknown> }> {
+    const merged = { ...atRest }
+    const stripped = { ...atRest }
+    let migrated = false
+
+    for (const field of this.secretFieldKeys(connectorId)) {
+      const legacyValue = atRest[field]
+      if (legacyValue !== undefined && legacyValue !== null && legacyValue !== '') {
+        await ide.secrets.set(this.secretStoreKey(connectorId, field), String(legacyValue))
+        delete stripped[field]
+        migrated = true
+      }
+      const stored = await ide.secrets.get(this.secretStoreKey(connectorId, field))
+      if (stored !== undefined) merged[field] = stored
+    }
+
+    return { merged, migrated, stripped }
+  }
+
+  private async persistStrippedConfig(connectorId: string, stripped: Record<string, unknown>): Promise<void> {
+    const config = await this.loadConfig()
+    config.connectors[connectorId] = stripped
+    await this.saveConfig(config)
   }
 
   // ── Workspace management ───────────────────────────────────────────────────
