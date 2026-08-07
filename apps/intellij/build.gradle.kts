@@ -79,11 +79,15 @@ intellijPlatform {
 
     pluginVerification {
         ides {
-            // recommended() and any pin newer than 2025.1 currently fail to resolve —
-            // intellij-platform-gradle-plugin 2.3.0 (Feb 2025) predates every IDE release
-            // since 2025.1 and can't look them up. Needs a plugin-version bump first
-            // (see conversation) before verifying against 2025.3+ / whatever ships after it.
+            // Explicit pins instead of recommended(): covers the oldest supported build
+            // (since-build = 251 in plugin.xml) plus every major line since, so a `verifyPlugin`
+            // run catches cross-version regressions (e.g. the 2026.2 JCEF module split) before
+            // they reach Marketplace's own verifier. All four currently resolve fine — the
+            // earlier "recommended()/newer pins fail to resolve" note no longer applies with
+            // intellij-platform-gradle-plugin 2.3.0's current IDE index.
             ide(IntelliJPlatformType.IntellijIdeaCommunity, "2025.1")
+            ide(IntelliJPlatformType.IntellijIdeaUltimate, "2025.2")
+            ide(IntelliJPlatformType.IntellijIdeaUltimate, "2025.3")
             ide(IntelliJPlatformType.IntellijIdeaUltimate, "2026.2")
         }
     }
