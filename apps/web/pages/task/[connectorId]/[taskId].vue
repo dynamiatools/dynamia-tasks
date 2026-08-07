@@ -129,6 +129,9 @@ async function submitComment(): Promise<boolean> {
     comments.value.push(comment)
     newComment.value = ''
     return true
+  } catch (e: any) {
+    ide.ui.notify('error', e?.message ?? 'Failed to post comment')
+    return false
   } finally {
     postingComment.value = false
   }
@@ -385,10 +388,12 @@ async function confirmRemoveFromWorkspace() {
             </a>
           </div>
 
-          <!-- Text body -->
-          <div class="text-sm leading-relaxed whitespace-pre-wrap text-dt-body">
-            {{ descExtract?.cleaned || task.description }}
-          </div>
+          <!-- Text body (rendered as markdown) -->
+          <div
+              v-if="descExtract?.cleaned || task.description"
+              class="text-sm leading-relaxed prose-dt text-dt-body"
+              v-html="renderMarkdown(descExtract?.cleaned || task.description)"
+          />
         </template>
       </div>
 
@@ -440,10 +445,10 @@ async function confirmRemoveFromWorkspace() {
               </div>
             </div>
 
-            <p v-if="extractComment(c.body).cleaned"
-               class="text-sm leading-relaxed whitespace-pre-wrap pl-7 text-dt-body">
-              {{ extractComment(c.body).cleaned }}
-            </p>
+            <div v-if="extractComment(c.body).cleaned"
+                 class="text-sm leading-relaxed prose-dt pl-7 text-dt-body"
+                 v-html="renderMarkdown(extractComment(c.body).cleaned)"
+            />
           </li>
         </ul>
 

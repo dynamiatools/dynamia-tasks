@@ -52,9 +52,9 @@
 
     <change-notes><![CDATA[
         <ul>
-           <li>Performance and stability improvements across the plugin</li>
-           <li>Updated ide-bridge with native clipboard support</li>
-           <li>Added copy/paste action buttons to all input fields and text areas</li>
+           <li>Added compatibility with 2026.2+ IDEs (JCEF is now an optional dependency, fixing a startup error on those versions)</li>
+           <li>Task descriptions and comments now render as Markdown (GitHub-flavored: tables, code blocks, task lists)</li>
+           <li>Clearer error notification when posting a comment fails, instead of failing silently</li>
         </ul>
     ]]></change-notes>
 
@@ -62,6 +62,15 @@
     <idea-version since-build="251" until-build=""/>
 
     <depends>com.intellij.modules.platform</depends>
+    <!-- From 2026.2 onward JCEF is a separate plugin (com.intellij.modules.jcef); without
+         declaring it, com.intellij.ui.jcef.* throws NoClassDefFoundError at runtime even
+         though JCEF is installed and running (other IDE features using it work fine — only
+         this plugin's classloader lacks visibility). Declared optional because the module
+         doesn't exist at all on some earlier IDEs (e.g. 2025.1) — a mandatory <depends> there
+         fails plugin load entirely ("requires plugin ... to be installed"). withJcef.xml is an
+         empty companion descriptor; DynamiaTasksWindowFactory already degrades gracefully
+         (Throwable catch) when the module/JCEF itself is unavailable. -->
+    <depends optional="true" config-file="withJcef.xml">com.intellij.modules.jcef</depends>
 
     <extensions defaultExtensionNs="com.intellij">
 

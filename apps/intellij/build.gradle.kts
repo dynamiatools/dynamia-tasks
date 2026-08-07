@@ -1,3 +1,4 @@
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -78,7 +79,12 @@ intellijPlatform {
 
     pluginVerification {
         ides {
-            recommended()
+            // recommended() and any pin newer than 2025.1 currently fail to resolve —
+            // intellij-platform-gradle-plugin 2.3.0 (Feb 2025) predates every IDE release
+            // since 2025.1 and can't look them up. Needs a plugin-version bump first
+            // (see conversation) before verifying against 2025.3+ / whatever ships after it.
+            ide(IntelliJPlatformType.IntellijIdeaCommunity, "2025.1")
+            ide(IntelliJPlatformType.IntellijIdeaUltimate, "2026.2")
         }
     }
 }
