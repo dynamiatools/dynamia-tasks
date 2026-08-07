@@ -2,9 +2,16 @@ packages:
   - 'packages/*'
   - 'apps/*'
 
+allowBuilds:
+  '@parcel/watcher': true
+  '@vscode/vsce-sign': true
+  esbuild: true
+  keytar: true
+  vue-demi: true
+
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@vscode/vsce-sign'
   - esbuild
   - keytar
-
+  - vue-demi

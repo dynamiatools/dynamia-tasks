@@ -1,0 +1,10 @@
+<!--
+    Optional companion descriptor for the com.intellij.modules.jcef dependency (see plugin.xml).
+    Loaded only when that module/plugin is actually present, which grants this plugin's
+    classloader visibility into com.intellij.ui.jcef.*. No extensions of our own needed here —
+    DynamiaTasksWindowFactory already degrades gracefully (Throwable catch) for IDEs where the
+    module is absent (e.g. 2025.1, where com.intellij.modules.jcef doesn't exist at all) or where
+    JCEF itself failed to initialize at runtime.
+-->
+<idea-plugin>
+</idea-plugin>

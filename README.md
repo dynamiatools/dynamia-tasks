@@ -84,9 +84,9 @@ Install from VS Code Marketplace:
 If you use the GitHub connector:
 
 1. Go to https://github.com/settings/tokens
-2. Create a classic token with scopes:
-   - `repo`
-   - `read:org`
+2. Create a token:
+   - Classic token: `repo` scope (add `read:org` too if you want to browse organization repositories in the Explorer)
+   - Fine-grained token: `Metadata` + `Issues` read/write permissions
 3. In Dynamia Tasks, open **Settings > GitHub** and paste your token
 
 Public repositories can work without a token.
@@ -119,11 +119,11 @@ Use unique IDs with `local-{uuid}` format.
 
 ## Built for Local-First Development
 
-Dynamia Tasks runs as a local server process started by your IDE plugin:
+Dynamia Tasks has no server and no backend process. The UI is a static web app bundled directly into each IDE plugin and rendered in an embedded browser (VS Code Webview / JetBrains JCEF). It talks to GitHub and to your local files directly from that embedded browser via the IDE, using [ide-bridge](https://github.com/dynamiatools/ide-bridge):
 
-- The UI is served locally
-- Configuration is stored locally
-- Workspace state is stored in your project
+- The UI is bundled statically into the plugin — nothing to start or serve
+- Configuration is stored locally, per IDE
+- Workspace state (`.dynamiatasks/workspace.json`) is stored in your project
 - No external backend required
 
 This keeps performance high and ownership in your hands.
@@ -132,10 +132,7 @@ This keeps performance high and ownership in your hands.
 
 ## For Teams and Contributors
 
-If you want to contribute or build custom connectors, see:
-
-- `CONTRIBUTING.md`
-- `ARCHITECTURE.md`
+If you want to contribute or build custom connectors, see `CONTRIBUTING.md`.
 
 ---
 
