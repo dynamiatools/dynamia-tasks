@@ -26,7 +26,39 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('dynamia-tasks.restart', () => webview.reload()),
     vscode.workspace.onDidChangeWorkspaceFolders(() => webview.reload()),
   )
+
+  await notifyOnUpdate(context, log)
 }
 
 export function deactivate() { /* nothing to tear down */ }
+
+// ── "what's new" toast ──────────────────────────────────────────────────────────
+
+const LAST_VERSION_KEY = 'dynamiaTasks.lastSeenVersion'
+
+/**
+ * Shows a one-time notification the first time the extension activates after an update
+ * (version bump), linking to CHANGELOG.md. Silent on fresh installs (nothing to compare
+ * against yet) and on every activation after the first at a given version.
+ */
+async function notifyOnUpdate(context: vscode.ExtensionContext, log: (msg: string) => void) {
+  const currentVersion = context.extension.packageJSON.version as string
+  const lastVersion = context.globalState.get<string>(LAST_VERSION_KEY)
+
+  if (lastVersion === currentVersion) return
+  await context.globalState.update(LAST_VERSION_KEY, currentVersion)
+
+  if (!lastVersion) return // fresh install, not an update
+
+  log(`[dynamia-tasks] updated ${lastVersion} → ${currentVersion}`)
+  const choice = await vscode.window.showInformationMessage(
+    `Dynamia Tasks updated to v${currentVersion}.`,
+    'View Changelog',
+  )
+  if (choice === 'View Changelog') {
+    void vscode.env.openExternal(
+      vscode.Uri.parse('https://github.com/dynamiatools/dynamia-tasks/blob/main/apps/vscode/CHANGELOG.md'),
+    )
+  }
+}
 
