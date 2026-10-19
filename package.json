@@ -12,7 +12,7 @@
     "build:vscode": "pnpm build:packages && pnpm build && pnpm --filter ./apps/vscode build && pnpm --filter ./apps/vscode package",
     "try:intellij": "pnpm build:packages && pnpm build && cd apps/intellij && ./gradlew runIde",
     "try:vscode": "pnpm build:packages && pnpm build && pnpm --filter ./apps/vscode build && code --extensionDevelopmentPath=$PWD/apps/vscode",
-    "test": "pnpm -r test"
+    "test": "pnpm build:packages && pnpm -r test"
   },
   "devDependencies": {
     "typescript": "^5.4.5"
