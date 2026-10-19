@@ -1,0 +1,28 @@
+{
+  "name": "@dynamia-tasks/mcp",
+  "version": "2.0.0",
+  "description": "MCP server that lets agents manage the local Dynamia Tasks of a project (.dynamia/tasks/*.json).",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "dynamia-tasks-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@dynamia-tasks/connector-local": "workspace:*",
+    "@dynamia-tasks/core": "workspace:*",
+    "@dynamia-tools/ide-bridge": "file:../../../ide-bridge/ide-bridge",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^5.4.5",
+    "vitest": "^3.2.7"
+  }
+}

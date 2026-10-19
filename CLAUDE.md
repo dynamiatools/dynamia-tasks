@@ -26,6 +26,8 @@ packages/
   connector-github/  GitHub REST client
 ```
 
+`apps/mcp` is a stdio MCP server (`@dynamia-tasks/mcp`, tools `mcp__dynamia-tasks__*`): Node, `NodeBridge` + `LocalConnector`; GitHub issues only get `add_github_issue_to_workspace` (writes a reference, no GitHub calls). Tests use an in-memory MCP client.
+
 New connectors: create `packages/connector-{name}/` (package.json, tsconfig.json, src/index.ts, a class implementing `TaskConnector` from `packages/core/src/connectors/types.ts`), then register it in **`apps/web/plugins/connectors.client.ts`** — CONTRIBUTING.md says "Server Registry" at `apps/web/server/utils/registry.ts`; that path doesn't exist, ignore it.
 
 ## Build commands
