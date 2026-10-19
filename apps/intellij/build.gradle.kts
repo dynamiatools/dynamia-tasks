@@ -50,7 +50,7 @@ dependencies {
     }
 
 
-    implementation("tools.dynamia:ide-bridge-intellij:1.0.0")
+    implementation("tools.dynamia:ide-bridge-intellij:2.0.0")
 
     // Gson bundled by IntelliJ Platform — compileOnly so it doesn't double-ship
     compileOnly("com.google.code.gson:gson:2.10.1")
