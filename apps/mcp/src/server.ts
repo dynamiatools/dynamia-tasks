@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { LocalConnector } from '@dynamia-tasks/connector-local'
 import { taskService } from '@dynamia-tasks/core'
 import type { ConnectorTask } from '@dynamia-tasks/core'
+import { VERSION } from './version.js'
 
 const priority = z.enum(['high', 'medium', 'low'])
 
@@ -31,7 +32,7 @@ const summary = (t: ConnectorTask) => ({
 /** Builds the server; the caller owns the transport. Expects the ide-bridge to be initialised. */
 export function createServer(projectPath: string): McpServer {
   const local = new LocalConnector(projectPath)
-  const server = new McpServer({ name: 'dynamia-tasks', version: '2.0.0' })
+  const server = new McpServer({ name: 'dynamia-tasks', version: VERSION })
 
   server.registerTool('list_tasks', {
     description: 'List the project\'s local tasks (.dynamia/tasks). Returns a short summary of each; use get_task for the full text.',

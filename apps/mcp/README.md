@@ -2,7 +2,11 @@
 
 MCP server (stdio) that lets an agent manage the local Dynamia Tasks of a project (`.dynamia/tasks/*.json`). No token, no network.
 
-## Use
+## Bundled with the plugins
+
+`pnpm build:mcp` produces one self-contained file, `apps/mcp/dist/dynamia-tasks-mcp.mjs` (needs only Node 20+). The VS Code extension and the IntelliJ plugin ship it and copy it to `~/.dynamiatasks/mcp/` each time they start. VS Code 1.101+ also registers it in its own MCP list. IntelliJ cannot register MCP servers from a plugin, so the guide in the plugin's **Settings → MCP for agents** (with a Verify button) shows the JSON to paste. `node dynamia-tasks-mcp.mjs --version` is what Verify runs.
+
+## Use from source
 
 ```bash
 pnpm build:packages && pnpm --filter @dynamia-tasks/mcp build

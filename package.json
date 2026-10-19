@@ -8,16 +8,14 @@
     "build:packages": "pnpm --filter \"./packages/*\" build",
     "build": "pnpm --filter @dynamia-tasks/web build",
     "build:web": "pnpm --filter @dynamia-tasks/web build",
-    "build:intellij": "pnpm build:packages && pnpm build && cd apps/intellij && ./gradlew buildPlugin",
-    "build:vscode": "pnpm build:packages && pnpm build && pnpm --filter ./apps/vscode build && pnpm --filter ./apps/vscode package",
-    "try:intellij": "pnpm build:packages && pnpm build && cd apps/intellij && ./gradlew runIde",
-    "try:vscode": "pnpm build:packages && pnpm build && pnpm --filter ./apps/vscode build && code --extensionDevelopmentPath=$PWD/apps/vscode",
-    "test": "pnpm build:packages && pnpm -r test"
+    "build:intellij": "pnpm build:mcp && pnpm build && cd apps/intellij && ./gradlew buildPlugin",
+    "build:vscode": "pnpm build:mcp && pnpm build && pnpm --filter ./apps/vscode build && pnpm --filter ./apps/vscode package",
+    "try:intellij": "pnpm build:mcp && pnpm build && cd apps/intellij && ./gradlew runIde",
+    "try:vscode": "pnpm build:mcp && pnpm build && pnpm --filter ./apps/vscode build && code --extensionDevelopmentPath=$PWD/apps/vscode",
+    "test": "pnpm build:packages && pnpm -r test",
+    "build:mcp": "pnpm build:packages && pnpm --filter @dynamia-tasks/mcp build && pnpm --filter @dynamia-tasks/mcp bundle"
   },
   "devDependencies": {
     "typescript": "^5.4.5"
   }
 }
-
-
-

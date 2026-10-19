@@ -13,5 +13,6 @@ class DynamiaTasksStartupListener : ProjectActivity {
 
     override suspend fun execute(project: Project) {
         log.info("DynamiaTasks: project opened → ${project.basePath}")
+        McpInstaller.install(log)
     }
 }

@@ -99,11 +99,20 @@ tasks.register<Copy>("copyNuxtSpa") {
     onlyIf { nuxtPublicDir.exists() }
 }
 
+// The MCP server bundle (built by `pnpm build:mcp`) ships inside the plugin as mcp/dynamia-tasks-mcp.mjs.
+val mcpBundle = file("${rootProject.projectDir}/../mcp/dist/dynamia-tasks-mcp.mjs")
+
+tasks.register<Copy>("copyMcp") {
+    from(mcpBundle)
+    into(generatedResources.map { it.dir("mcp") })
+    onlyIf { mcpBundle.exists() }
+}
+
 // Register the generated directory as a resource source set so that
 // processResources picks it up and includes it in the plugin JAR.
 sourceSets["main"].resources.srcDir(generatedResources)
 
 tasks.named<Copy>("processResources") {
-    dependsOn("copyNuxtSpa")
+    dependsOn("copyNuxtSpa", "copyMcp")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

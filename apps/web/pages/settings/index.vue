@@ -182,5 +182,7 @@ function applyMode(mode: 'zen' | 'dev' | 'default') {
         </li>
       </ul>
     </section>
+
+    <McpSetup />
   </div>
 </template>
