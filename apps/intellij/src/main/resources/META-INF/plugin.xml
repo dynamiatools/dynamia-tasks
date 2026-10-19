@@ -52,6 +52,7 @@
 
     <change-notes><![CDATA[
         <ul>
+           <li>Requires IntelliJ IDEA 2026.1 or later; support for 2025.x has been dropped</li>
            <li>Task files now live in <code>.dynamia/tasks/</code>; existing <code>.tasks/</code> and <code>.dynamiatasks/</code> files are copied automatically (the old ones are left in place)</li>
            <li>Edits made to those files by an agent or by hand are picked up automatically (within ~2 s)</li>
            <li>Local tasks are no longer lost when a task file is corrupt or several changes happen at once</li>
