@@ -20,10 +20,21 @@ const route = useRoute()
 const prefs = usePreferencesStore()
 const workspace = useWorkspaceStore()
 
+const svc = useTaskService()
+const tasksVersion = useTasksVersion()
+let stopWatching: (() => void) | null = null
+
 onMounted(async () => {
   prefs.load()
   await workspace.load()
+  // Reload when .dynamia/tasks/* changes on disk (agent or manual edit).
+  stopWatching = svc.onChange(() => {
+    tasksVersion.value += 1
+    void workspace.load()
+  })
 })
+
+onBeforeUnmount(() => stopWatching?.())
 </script>
 
 <style scoped>

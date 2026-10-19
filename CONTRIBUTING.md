@@ -77,7 +77,7 @@ Use this structure in your issue:
 - **Actual result**
 - **Environment**: OS, IDE, plugin version, Node.js version
 - **Logs/screenshots**: include errors from IDE logs, extension host logs, or the webview console
-- **Sample data**: minimal `.tasks/*.json` or config snippet if relevant
+- **Sample data**: minimal `.dynamia/tasks/*.json` or config snippet if relevant
 
 ### Issue Types
 

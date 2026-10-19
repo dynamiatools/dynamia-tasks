@@ -1,6 +1,6 @@
 # Dynamia Tasks
 
-IDE plugin (VS Code + JetBrains/IntelliJ) that brings GitHub issues and local `.tasks/*.json` files into one checklist inside the IDE. Local-first, no cloud backend, no telemetry. MIT licensed.
+IDE plugin (VS Code + JetBrains/IntelliJ) that brings GitHub issues and local `.dynamia/tasks/*.json` files into one checklist inside the IDE. Local-first, no cloud backend, no telemetry. MIT licensed.
 
 ## Actual architecture (do not trust `README.md` / `.github/copilot-instructions.md` / `ARCHITECTURE.md` on this point)
 
@@ -22,7 +22,7 @@ apps/
   intellij/      IntelliJ plugin — plugin.xml, src/main/kotlin/tools/dynamia/tasks/ (DynamiaTasksStartupListener.kt, DynamiaTasksWindowFactory.kt, DynamiaTasksPanel.kt); build.gradle.kts copies the built SPA into plugin resources
 packages/
   core/          Canonical types (types.ts), TaskConnector interface (connectors/types.ts), TaskService.ts (service layer), ConfigService.ts
-  connector-local/   Reads/writes {project}/.tasks/*.json
+  connector-local/   Reads/writes {project}/.dynamia/tasks/*.json
   connector-github/  GitHub REST client
 ```
 
@@ -38,7 +38,9 @@ pnpm build:vscode      # build web + esbuild + vsce package
 pnpm dev               # apps/web dev server only
 ```
 
-**`pnpm test` is broken as written** — root script is `pnpm -r test`, but no package in the workspace defines a `test` script; it will error or no-op. There is no test framework anywhere in the repo (no vitest/jest, no `.test.ts` files) and no lint tooling (no ESLint/Prettier config; `apps/vscode`'s `"lint"` script is actually `tsc --noEmit`, a type-check, not a lint pass). No CI workflow exists (`.github/` has only `copilot-instructions.md`, no `workflows/`). Don't assume tests or CI gate anything — they don't, today.
+`pnpm test` runs vitest in `packages/core`, `connector-local` and `connector-github` (tests live in each package's `test/`, outside `src/` so `tsc` does not emit them; they use `NodeBridge` on a temp dir or a stubbed `fetch`). There are no UI tests and no lint tooling (no ESLint/Prettier config; `apps/vscode`'s `"lint"` script is actually `tsc --noEmit`, a type-check). No CI workflow exists (`.github/` has only `copilot-instructions.md`, no `workflows/`), so nothing gates a merge automatically.
+
+The bridge is deny-by-default (see `../ide-bridge/CLAUDE.md`): `apps/vscode/src/extension.ts` and `DynamiaTasksPanel.kt` pass the only extras this plugin needs (read-only `~/.dynamiatasks`, the exact command `git config user.name`). Any new `ide.fs`/`ide.shell` use outside the project path must be added there.
 
 ## Secret storage
 
@@ -46,8 +48,9 @@ GitHub PAT storage goes through `ide.secrets` (OS-keychain-backed: VS Code `Secr
 
 ## Known issues worth flagging before extending
 
-- **Three inconsistent state-directory conventions are in play**: `.tasks/*.json` (actual local-connector storage, confirmed in code), `.dynamiatasks/workspace.json` per-project (what `TaskService.ts` actually writes) and `~/.dynamiatasks/...` (global config/cache per docs), plus a leftover `.dynamia/tasks/workspace.json` on disk that current code doesn't write to. Don't assume any of the docs' naming is current — check `TaskService.ts`/`ConfigService.ts`/`LocalConnector.ts` directly.
-- `.tasks/backlog.json` is tracked in git despite `.gitignore` blanket-ignoring `.tasks/` (it was committed before the rule existed); `.tasks/comments.json` is ignored. `apps/web/dist` is untracked and not actually covered by `.gitignore` either. Don't assume gitignore patterns match reality — check `git status`/`git check-ignore` before relying on them.
+- **All per-project state lives in `.dynamia/tasks/`** (`*.json` task lists, `workspace.json`, `comments.json`), resolved by `tasksDir()` in `packages/core/src/tasksDir.ts`. Never hardcode the path; `isTaskListFile()` excludes `workspace.json`/`comments.json` from task lists. `migrateLegacyState` copies the old `.tasks/*.json` and `.dynamiatasks/workspace.json` once (no overwrite, no delete). `~/.dynamiatasks/config.json` is only a read-only legacy fallback for global config.
+- **External edits are detected by polling** (`watchTasksDir`, 2s, fingerprint of every `*.json` in the dir; paused while the webview is hidden), because the bridge has no `fs.watch`. `TaskService.onChange()` exposes it, `layouts/default.vue` subscribes, and pages `watch(useTasksVersion())`. Replace with a bridge-level watcher if polling cost matters.
+- `.gitignore` ignores `.dynamia/*` except `.dynamia/tasks/`, and within it `workspace.json` and `comments.json`; `backlog.json` is tracked. Note `ms-workspace workspace-init` in single-repo mode excludes `.dynamia/` locally via `.git/info/exclude`, which would hide the backlog from git in that setup.
 - Version numbers are independent per artifact on purpose: root `package.json` 1.0.0, `apps/web` and `apps/vscode`/`apps/intellij` track their own versions. Don't "fix" this into a single version unless asked.
 
 ## Conventions

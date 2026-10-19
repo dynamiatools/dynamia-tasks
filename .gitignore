@@ -42,7 +42,11 @@ out/
 .vscode-test/
 
 # --- Project local state ---
-.dynamia/
+# Task files live in .dynamia/tasks/ and are committable; per-user state is not.
+.dynamia/*
+!.dynamia/tasks/
+.dynamia/tasks/workspace.json
+.dynamia/tasks/comments.json
 
 # --- OS files ---
 .DS_Store
@@ -55,9 +59,7 @@ web/dist/
 web/.nuxt/
 web/.output/
 web/dist/
-.tasks/
 .idea/
-.dynamia/
 .intellijPlatform/
 .kotlin/
 .output/

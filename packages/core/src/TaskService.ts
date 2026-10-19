@@ -13,6 +13,8 @@
 
 import { ide } from '@dynamia-tools/ide-bridge'
 import { ConfigService } from './ConfigService.js'
+import { tasksDir, migrateLegacyState, WORKSPACE_FILE } from './tasksDir.js'
+import { watchTasksDir } from './tasksWatcher.js'
 import type {
   TaskConnector,
   TaskFilter,
@@ -63,9 +65,14 @@ export class TaskService {
     for (const [id, connector] of this.registry) {
       const atRest = config.connectors[id]
       if (atRest === undefined) continue
-      const { merged, migrated, stripped } = await this.mergeSecrets(id, atRest as Record<string, unknown>)
-      if (migrated) await this.persistStrippedConfig(id, stripped)
-      await connector.configure(merged)
+      // One connector failing (e.g. keychain unavailable) must not stop the others from loading.
+      try {
+        const { merged, migrated, stripped } = await this.mergeSecrets(id, atRest as Record<string, unknown>)
+        if (migrated) await this.persistStrippedConfig(id, stripped)
+        await connector.configure(merged)
+      } catch (e) {
+        console.warn(`[dynamia-tasks] could not configure connector "${id}":`, (e as Error).message)
+      }
     }
   }
 
@@ -187,21 +194,29 @@ export class TaskService {
   // ── Workspace management ───────────────────────────────────────────────────
 
   private workspacePath(): string {
-    return ide.path.join(ide.env.getProjectPath(), '.dynamiatasks', 'workspace.json')
+    return ide.path.join(tasksDir(ide.env.getProjectPath()), WORKSPACE_FILE)
+  }
+
+  /** Calls `listener` when anything under `.dynamia/tasks/` changes on disk (agent, user or this plugin). */
+  onChange(listener: () => void): () => void {
+    return watchTasksDir(ide.env.getProjectPath(), listener)
   }
 
   private async readWorkspace(): Promise<Workspace> {
+    await migrateLegacyState(ide.env.getProjectPath())
+    const empty: Workspace = { projectPath: ide.env.getProjectPath(), items: [], activeTask: null }
+    if (!(await ide.fs.exists(this.workspacePath()))) return empty
+    const raw = await ide.fs.readFile(this.workspacePath())
     try {
-      const raw = await ide.fs.readFile(this.workspacePath())
       return JSON.parse(raw) as Workspace
     } catch {
-      return { projectPath: ide.env.getProjectPath(), items: [], activeTask: null }
+      // Throwing (instead of returning `empty`) keeps the next write from wiping a file the user can still repair.
+      throw new Error(`${WORKSPACE_FILE} is not valid JSON; fix or remove it`)
     }
   }
 
   private async writeWorkspace(ws: Workspace): Promise<void> {
-    const dir = ide.path.join(ide.env.getProjectPath(), '.dynamiatasks')
-    await ide.fs.mkdir(dir, { recursive: true })
+    await ide.fs.mkdir(tasksDir(ide.env.getProjectPath()), { recursive: true })
     await ide.fs.writeFile(this.workspacePath(), JSON.stringify(ws, null, 2))
   }
 
@@ -216,7 +231,10 @@ export class TaskService {
   }
 
   async loadWorkspace(): Promise<WorkspaceResult> {
-    const ws = await this.readWorkspace()
+    const ws = await this.readWorkspace().catch((e: Error) => {
+      console.warn(`[dynamia-tasks] ${e.message}`)
+      return { projectPath: '', items: [], activeTask: null } as Workspace
+    })
     const sorted = [...ws.items].sort((a, b) => a.order - b.order)
     const items: TaskView[] = []
     for (const item of sorted) {

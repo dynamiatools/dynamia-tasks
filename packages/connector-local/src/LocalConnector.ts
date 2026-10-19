@@ -2,6 +2,7 @@ import { ide } from '@dynamia-tools/ide-bridge'
 
 /** Works in browser (JCEF / WebView) and Node.js 19+. No import needed. */
 const newUUID = (): string => crypto.randomUUID()
+import { tasksDir, isTaskListFile, migrateLegacyState, COMMENTS_FILE } from '@dynamia-tasks/core'
 import type {
   TaskConnector,
   ConnectorTask,
@@ -43,11 +44,11 @@ export class LocalConnector implements TaskConnector {
   }
 
   private get tasksDir() {
-    return ide.path.join(this.projectPath, '.tasks')
+    return tasksDir(this.projectPath)
   }
 
   private get commentsFile() {
-    return ide.path.join(this.tasksDir, 'comments.json')
+    return ide.path.join(this.tasksDir, COMMENTS_FILE)
   }
 
   private colorForLabel(name: string): string {
@@ -125,16 +126,41 @@ export class LocalConnector implements TaskConnector {
     return { fields: [] } // no user-facing config
   }
 
+  /** Read-modify-write sequences run one at a time so concurrent calls cannot lose each other's changes. */
+  private writeQueue: Promise<unknown> = Promise.resolve()
+
+  private serialize<T>(fn: () => Promise<T>): Promise<T> {
+    const run = this.writeQueue.then(fn, fn)
+    this.writeQueue = run.catch(() => undefined)
+    return run
+  }
+
+  /**
+   * Reads and parses a JSON file. Returns `null` only when the file does not exist;
+   * a file that exists but cannot be parsed throws, so callers never mistake a
+   * corrupt file for an empty one and overwrite it.
+   */
+  private async readJson<T>(filePath: string): Promise<T | null> {
+    if (!(await ide.fs.exists(filePath))) return null
+    const raw = await ide.fs.readFile(filePath)
+    try {
+      return JSON.parse(raw) as T
+    } catch {
+      throw new Error(`${ide.path.basename(filePath)} is not valid JSON; fix or remove it before saving changes`)
+    }
+  }
+
   private async readAllTasks(): Promise<ConnectorTask[]> {
+    await migrateLegacyState(this.projectPath)
     let files: string[] = []
     try {
       files = await ide.fs.readdir(this.tasksDir)
     } catch {
-      return [] // .tasks/ doesn't exist yet
+      return [] // .dynamia/tasks/ doesn't exist yet
     }
 
     const tasks: ConnectorTask[] = []
-    for (const file of files.filter(f => f.endsWith('.json') && f !== 'comments.json')) {
+    for (const file of files.filter(isTaskListFile)) {
       const filePath = ide.path.join(this.tasksDir, file)
       try {
         const raw = await ide.fs.readFile(filePath)
@@ -147,6 +173,7 @@ export class LocalConnector implements TaskConnector {
     return tasks
   }
 
+  // shortcut: not atomic (the bridge has no rename); revisit if corruption on crash shows up.
   private async writeFile(filename: string, tasks: ConnectorTask[]): Promise<void> {
     await ide.fs.mkdir(this.tasksDir, { recursive: true })
     await ide.fs.writeFile(
@@ -156,12 +183,8 @@ export class LocalConnector implements TaskConnector {
   }
 
   private async readComments(): Promise<Record<string, TaskComment[]>> {
-    try {
-      const raw = await ide.fs.readFile(this.commentsFile)
-      return JSON.parse(raw)
-    } catch {
-      return {}
-    }
+    await migrateLegacyState(this.projectPath)
+    return (await this.readJson<Record<string, TaskComment[]>>(this.commentsFile)) ?? {}
   }
 
   private async writeComments(data: Record<string, TaskComment[]>): Promise<void> {
@@ -170,13 +193,14 @@ export class LocalConnector implements TaskConnector {
   }
 
   private async findTaskFile(id: string): Promise<{ file: string; tasks: ConnectorTask[] } | null> {
+    await migrateLegacyState(this.projectPath)
     let files: string[] = []
     try {
       files = await ide.fs.readdir(this.tasksDir)
     } catch {
       return null
     }
-    for (const file of files.filter(f => f.endsWith('.json') && f !== 'comments.json')) {
+    for (const file of files.filter(isTaskListFile)) {
       try {
         const raw = await ide.fs.readFile(ide.path.join(this.tasksDir, file))
         const arr = JSON.parse(raw) as ConnectorTask[]
@@ -227,38 +251,41 @@ export class LocalConnector implements TaskConnector {
       updatedAt: now,
     }
 
+    await migrateLegacyState(this.projectPath)
     const filename = 'backlog.json'
-    let existing: ConnectorTask[] = []
-    try {
-      const raw = await ide.fs.readFile(ide.path.join(this.tasksDir, filename))
-      existing = JSON.parse(raw)
-    } catch { /* file doesn't exist yet */ }
-    await this.writeFile(filename, [...existing, task])
-    return task
-  }
-
-  async updateTask(id: string, patch: TaskPatch): Promise<ConnectorTask> {
-    const result = await this.findTaskFile(id)
-    if (!result) throw Object.assign(new Error(`Task not found: ${id}`), { code: 'TASK_NOT_FOUND' })
-
-    const updated = result.tasks.map(t => {
-      if (t.id !== id) return t
-      return {
-        ...t,
-        ...patch,
-        labels: patch.labels ? patch.labels.map(l => this.normalizeLabel({ id: l, name: l })) : t.labels,
-        updatedAt: new Date().toISOString(),
-      }
+    return this.serialize(async () => {
+      const existing = (await this.readJson<ConnectorTask[]>(ide.path.join(this.tasksDir, filename))) ?? []
+      await this.writeFile(filename, [...existing, task])
+      return task
     })
-
-    await this.writeFile(result.file, updated)
-    return this.normalizeTask(updated.find(t => t.id === id)!)
   }
 
-  async deleteTask(id: string): Promise<void> {
-    const result = await this.findTaskFile(id)
-    if (!result) throw Object.assign(new Error(`Task not found: ${id}`), { code: 'TASK_NOT_FOUND' })
-    await this.writeFile(result.file, result.tasks.filter(t => t.id !== id))
+  updateTask(id: string, patch: TaskPatch): Promise<ConnectorTask> {
+    return this.serialize(async () => {
+      const result = await this.findTaskFile(id)
+      if (!result) throw Object.assign(new Error(`Task not found: ${id}`), { code: 'TASK_NOT_FOUND' })
+
+      const updated = result.tasks.map(t => {
+        if (t.id !== id) return t
+        return {
+          ...t,
+          ...patch,
+          labels: patch.labels ? patch.labels.map(l => this.normalizeLabel({ id: l, name: l })) : t.labels,
+          updatedAt: new Date().toISOString(),
+        }
+      })
+
+      await this.writeFile(result.file, updated)
+      return this.normalizeTask(updated.find(t => t.id === id)!)
+    })
+  }
+
+  deleteTask(id: string): Promise<void> {
+    return this.serialize(async () => {
+      const result = await this.findTaskFile(id)
+      if (!result) throw Object.assign(new Error(`Task not found: ${id}`), { code: 'TASK_NOT_FOUND' })
+      await this.writeFile(result.file, result.tasks.filter(t => t.id !== id))
+    })
   }
 
   async fetchLabels(_sourceId?: string): Promise<TaskLabel[]> {
@@ -290,18 +317,20 @@ export class LocalConnector implements TaskConnector {
   }
 
   async addComment(taskId: string, body: string): Promise<TaskComment> {
-    const all    = await this.readComments()
-    const now    = new Date().toISOString()
     const author = await this.resolveAuthor()
-    const comment: TaskComment = {
-      id: newUUID(),
-      body,
-      author: { id: 'local', login: author },
-      createdAt: now,
-      updatedAt: now,
-    }
-    all[taskId] = [...(all[taskId] ?? []), comment]
-    await this.writeComments(all)
-    return comment
+    return this.serialize(async () => {
+      const all = await this.readComments()
+      const now = new Date().toISOString()
+      const comment: TaskComment = {
+        id: newUUID(),
+        body,
+        author: { id: 'local', login: author },
+        createdAt: now,
+        updatedAt: now,
+      }
+      all[taskId] = [...(all[taskId] ?? []), comment]
+      await this.writeComments(all)
+      return comment
+    })
   }
 }
