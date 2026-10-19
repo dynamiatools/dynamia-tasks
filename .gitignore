@@ -63,3 +63,5 @@ web/dist/
 .intellijPlatform/
 .kotlin/
 .output/
+# nuxt generate leaves this symlink to .output/public
+apps/web/dist
