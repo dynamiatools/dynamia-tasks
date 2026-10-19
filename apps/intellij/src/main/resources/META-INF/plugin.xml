@@ -54,7 +54,8 @@
         <ul>
            <li>Requires IntelliJ IDEA 2026.1 or later; support for 2025.x has been dropped</li>
            <li>Task files now live in <code>.dynamia/tasks/</code>; existing <code>.tasks/</code> and <code>.dynamiatasks/</code> files are copied automatically (the old ones are left in place)</li>
-           <li>New MCP server for agents (list, create, update and comment on local tasks); Settings → MCP for agents verifies it and explains how to add it in IntelliJ</li>
+           <li>New MCP server for agents (<code>mcp__dynamia-tasks__*</code>), bundled with the plugin and copied to <code>~/.dynamiatasks/mcp/</code> on startup: list (filter by status, text, label and priority), create, update, comment on and delete local tasks, and add a GitHub issue to the workspace by repo and number. It only acts in folders with <code>.dynamia/tasks/</code></li>
+           <li>Settings → MCP for agents verifies the install (file, Node.js, server) and explains how to add the server in IntelliJ (AI Assistant / Junie) and Claude Code; a plugin cannot register MCP servers in IntelliJ by itself</li>
            <li>Edits made to those files by an agent or by hand are picked up automatically (within ~2 s)</li>
            <li>Local tasks are no longer lost when a task file is corrupt or several changes happen at once</li>
            <li>GitHub: label filters with special characters work, permission errors are no longer reported as rate limiting, repositories load in parallel</li>

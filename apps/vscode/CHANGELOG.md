@@ -5,7 +5,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [2.0.0]
 
-- **New MCP server** (`apps/mcp`, tools `mcp__dynamia-tasks__*`): agents can list, create, update, comment on and delete local tasks, and add a GitHub issue (repo + number) to the workspace. It ships inside the plugin; it only acts in projects that have `.dynamia/tasks/`; Settings → MCP for agents verifies the install and shows how to connect Claude Code, VS Code and IntelliJ.
+- **New MCP server for agents** (tools `mcp__dynamia-tasks__*`), bundled with the extension and
+  copied to `~/.dynamiatasks/mcp/` on startup:
+  - List tasks (filter by status, text, label and priority), read one with its comments, create
+    (it also joins the workspace), update (title, description, done, priority, labels), delete
+    and comment.
+  - Add a GitHub issue to the workspace by repo and issue number.
+  - It only acts in folders that have `.dynamia/tasks/` (also from a subfolder); anywhere else it
+    just says the folder has no Dynamia Tasks support. One global registration serves every project.
+  - VS Code 1.101+ lists it under *MCP: List Servers*. **Settings → MCP for agents** verifies the
+    install and shows how to connect Claude Code, VS Code and IntelliJ.
 - **Task files moved to `.dynamia/tasks/`** (task lists, comments and the workspace state).
   Existing `.tasks/*.json` and `.dynamiatasks/workspace.json` are copied automatically the
   first time; the old files are left in place so you can delete them.
