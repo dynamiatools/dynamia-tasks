@@ -1,4 +1,6 @@
 import * as vscode from 'vscode'
+import * as os from 'node:os'
+import * as path from 'node:path'
 import { DynamiaWebView } from '@dynamia-tools/ide-bridge-vscode'
 
 // ── activation ────────────────────────────────────────────────────────────────
@@ -14,6 +16,12 @@ export async function activate(context: vscode.ExtensionContext) {
     extensionContext: context,
     log,
     debugMode: false,
+    security: {
+      // ConfigService still reads the pre-1.0 global config from here (read-only migration).
+      fsReadOnlyRoots: [path.join(os.homedir(), '.dynamiatasks')],
+      // LocalConnector.resolveAuthor(): author name for local comments.
+      allowedCommands: [['git', 'config', 'user.name']],
+    },
   })
 
   context.subscriptions.push(

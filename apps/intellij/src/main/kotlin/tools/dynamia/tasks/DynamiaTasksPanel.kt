@@ -1,6 +1,7 @@
 package tools.dynamia.tasks
 
 import com.intellij.openapi.project.Project
+import tools.dynamia.idebridge.BridgeSecurity
 import tools.dynamia.idebridge.DynamiaWebView
 
 /**
@@ -23,5 +24,11 @@ class DynamiaTasksPanel(project: Project) {
         resourceClassLoader = DynamiaTasksPanel::class.java.classLoader,
         notificationGroupId = "DynamiaTasks",
         notificationDisplayName = "Dynamia Tasks",
+        security            = BridgeSecurity(
+            // ConfigService still reads the pre-1.0 global config from here (read-only migration).
+            fsReadOnlyRoots = listOf(System.getProperty("user.home") + "/.dynamiatasks"),
+            // LocalConnector.resolveAuthor(): author name for local comments.
+            allowedCommands = listOf(listOf("git", "config", "user.name")),
+        ),
     )
 }
