@@ -199,11 +199,14 @@ export class TaskService {
 
   private async readWorkspace(): Promise<Workspace> {
     await migrateLegacyState(ide.env.getProjectPath())
+    const empty: Workspace = { projectPath: ide.env.getProjectPath(), items: [], activeTask: null }
+    if (!(await ide.fs.exists(this.workspacePath()))) return empty
+    const raw = await ide.fs.readFile(this.workspacePath())
     try {
-      const raw = await ide.fs.readFile(this.workspacePath())
       return JSON.parse(raw) as Workspace
     } catch {
-      return { projectPath: ide.env.getProjectPath(), items: [], activeTask: null }
+      // Throwing (instead of returning `empty`) keeps the next write from wiping a file the user can still repair.
+      throw new Error(`${WORKSPACE_FILE} is not valid JSON; fix or remove it`)
     }
   }
 
@@ -223,7 +226,10 @@ export class TaskService {
   }
 
   async loadWorkspace(): Promise<WorkspaceResult> {
-    const ws = await this.readWorkspace()
+    const ws = await this.readWorkspace().catch((e: Error) => {
+      console.warn(`[dynamia-tasks] ${e.message}`)
+      return { projectPath: '', items: [], activeTask: null } as Workspace
+    })
     const sorted = [...ws.items].sort((a, b) => a.order - b.order)
     const items: TaskView[] = []
     for (const item of sorted) {
