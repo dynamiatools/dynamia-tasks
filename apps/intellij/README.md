@@ -49,13 +49,22 @@ Your token is stored locally and never leaves your machine.
 
 ## Compatibility
 
-- IntelliJ IDEA 2025.1 or later
+- IntelliJ IDEA 2026.1 or later
 - Other JetBrains IDEs based on the IntelliJ Platform (WebStorm, PyCharm, GoLand, etc.)
 
 ---
 
 ## Local Development Notes
 
+- The plugin bundles the Nuxt SPA from `apps/web`. Build it **before** `runIde` or the tool window stays blank (`copyNuxtSpa` is skipped when `apps/web/.output/public` is missing). From the repo root:
+  ```bash
+  pnpm install
+  pnpm --filter "./packages/*" build   # compiles core + connectors into dist/ (the web build needs them)
+  pnpm build                           # nuxt generate → apps/web/.output/public
+  cd apps/intellij && ./gradlew runIde
+  ```
+- Re-run the relevant build step after changing `packages/*` or `apps/web`, then `runIde` again.
+- `ide-bridge` must be checked out as a sibling repo (`../ide-bridge`) and `tools.dynamia:ide-bridge-intellij` published to `mavenLocal`.
 - Gradle uses the JDK from your environment (`JAVA_HOME` or the JVM used to launch Gradle).
 - If you need to pin a local JDK, set it in your user-level Gradle config (`~/.gradle/gradle.properties`) with:
   - `org.gradle.java.home=C:/Path/To/JDK`
