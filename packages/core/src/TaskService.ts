@@ -13,6 +13,8 @@
 
 import { ide } from '@dynamia-tools/ide-bridge'
 import { ConfigService } from './ConfigService.js'
+import { tasksDir, migrateLegacyState, WORKSPACE_FILE } from './tasksDir.js'
+import { watchTasksDir } from './tasksWatcher.js'
 import type {
   TaskConnector,
   TaskFilter,
@@ -187,10 +189,16 @@ export class TaskService {
   // ── Workspace management ───────────────────────────────────────────────────
 
   private workspacePath(): string {
-    return ide.path.join(ide.env.getProjectPath(), '.dynamiatasks', 'workspace.json')
+    return ide.path.join(tasksDir(ide.env.getProjectPath()), WORKSPACE_FILE)
+  }
+
+  /** Calls `listener` when anything under `.dynamia/tasks/` changes on disk (agent, user or this plugin). */
+  onChange(listener: () => void): () => void {
+    return watchTasksDir(ide.env.getProjectPath(), listener)
   }
 
   private async readWorkspace(): Promise<Workspace> {
+    await migrateLegacyState(ide.env.getProjectPath())
     try {
       const raw = await ide.fs.readFile(this.workspacePath())
       return JSON.parse(raw) as Workspace
@@ -200,8 +208,7 @@ export class TaskService {
   }
 
   private async writeWorkspace(ws: Workspace): Promise<void> {
-    const dir = ide.path.join(ide.env.getProjectPath(), '.dynamiatasks')
-    await ide.fs.mkdir(dir, { recursive: true })
+    await ide.fs.mkdir(tasksDir(ide.env.getProjectPath()), { recursive: true })
     await ide.fs.writeFile(this.workspacePath(), JSON.stringify(ws, null, 2))
   }
 

@@ -55,6 +55,12 @@ onMounted(async () => {
   await loadTask()
 })
 
+// An external edit (agent / manual) of the task files: refresh unless the user is mid-edit.
+const tasksVersion = useTasksVersion()
+watch(tasksVersion, () => {
+  if (!editing.value) void loadTask()
+})
+
 async function loadTask() {
   // Only show full spinner if we have no pre-cached data
   if (!task.value) {

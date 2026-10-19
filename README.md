@@ -51,7 +51,7 @@ Install from VS Code Marketplace:
 ## What You Can Do
 
 - Browse and manage GitHub issues by org/repo
-- Work with local tasks stored as plain JSON files in `.tasks/`
+- Work with local tasks stored as plain JSON files in `.dynamia/tasks/`
 - Build a **personal workspace** with the tasks you are actively working on
 - Group tasks by module, label, or title prefix
 - Open files and receive IDE-native notifications from task actions
@@ -64,7 +64,7 @@ Install from VS Code Marketplace:
 - Developers who want a task view directly inside the IDE
 - Teams that prefer local-first tools over cloud-heavy systems
 - Repositories that combine external issues with project-local TODO streams
-- AI-assisted workflows that benefit from editable `.tasks/*.json` files
+- AI-assisted workflows that benefit from editable `.dynamia/tasks/*.json` files
 
 ---
 
@@ -74,7 +74,7 @@ Install from VS Code Marketplace:
 2. Open Dynamia Tasks from the IDE sidebar/tool window.
 3. Configure your connectors in **Settings**:
    - **GitHub** (optional token)
-   - **Local** (`.tasks/*.json`)
+   - **Local** (`.dynamia/tasks/*.json`)
 4. Add tasks to your workspace and start shipping.
 
 ---
@@ -95,7 +95,9 @@ Public repositories can work without a token.
 
 ## Local Tasks Format
 
-Dynamia Tasks reads any `.tasks/*.json` file in your project.
+Dynamia Tasks reads any `.dynamia/tasks/*.json` file in your project. Edits made by an agent or by hand are picked up automatically (within ~2 seconds).
+
+Projects that still use `.tasks/` are migrated on first run: the files are copied to `.dynamia/tasks/` and the old ones are left in place, so you can delete them.
 
 ```json
 [
@@ -123,7 +125,7 @@ Dynamia Tasks has no server and no backend process. The UI is a static web app b
 
 - The UI is bundled statically into the plugin — nothing to start or serve
 - Configuration is stored locally, per IDE
-- Workspace state (`.dynamiatasks/workspace.json`) is stored in your project
+- Workspace state (`.dynamia/tasks/workspace.json`) is stored in your project
 - No external backend required
 
 This keeps performance high and ownership in your hands.

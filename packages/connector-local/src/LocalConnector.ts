@@ -2,6 +2,7 @@ import { ide } from '@dynamia-tools/ide-bridge'
 
 /** Works in browser (JCEF / WebView) and Node.js 19+. No import needed. */
 const newUUID = (): string => crypto.randomUUID()
+import { tasksDir, isTaskListFile, migrateLegacyState, COMMENTS_FILE } from '@dynamia-tasks/core'
 import type {
   TaskConnector,
   ConnectorTask,
@@ -43,11 +44,11 @@ export class LocalConnector implements TaskConnector {
   }
 
   private get tasksDir() {
-    return ide.path.join(this.projectPath, '.tasks')
+    return tasksDir(this.projectPath)
   }
 
   private get commentsFile() {
-    return ide.path.join(this.tasksDir, 'comments.json')
+    return ide.path.join(this.tasksDir, COMMENTS_FILE)
   }
 
   private colorForLabel(name: string): string {
@@ -126,15 +127,16 @@ export class LocalConnector implements TaskConnector {
   }
 
   private async readAllTasks(): Promise<ConnectorTask[]> {
+    await migrateLegacyState(this.projectPath)
     let files: string[] = []
     try {
       files = await ide.fs.readdir(this.tasksDir)
     } catch {
-      return [] // .tasks/ doesn't exist yet
+      return [] // .dynamia/tasks/ doesn't exist yet
     }
 
     const tasks: ConnectorTask[] = []
-    for (const file of files.filter(f => f.endsWith('.json') && f !== 'comments.json')) {
+    for (const file of files.filter(isTaskListFile)) {
       const filePath = ide.path.join(this.tasksDir, file)
       try {
         const raw = await ide.fs.readFile(filePath)
@@ -156,6 +158,7 @@ export class LocalConnector implements TaskConnector {
   }
 
   private async readComments(): Promise<Record<string, TaskComment[]>> {
+    await migrateLegacyState(this.projectPath)
     try {
       const raw = await ide.fs.readFile(this.commentsFile)
       return JSON.parse(raw)
@@ -170,13 +173,14 @@ export class LocalConnector implements TaskConnector {
   }
 
   private async findTaskFile(id: string): Promise<{ file: string; tasks: ConnectorTask[] } | null> {
+    await migrateLegacyState(this.projectPath)
     let files: string[] = []
     try {
       files = await ide.fs.readdir(this.tasksDir)
     } catch {
       return null
     }
-    for (const file of files.filter(f => f.endsWith('.json') && f !== 'comments.json')) {
+    for (const file of files.filter(isTaskListFile)) {
       try {
         const raw = await ide.fs.readFile(ide.path.join(this.tasksDir, file))
         const arr = JSON.parse(raw) as ConnectorTask[]
@@ -227,6 +231,7 @@ export class LocalConnector implements TaskConnector {
       updatedAt: now,
     }
 
+    await migrateLegacyState(this.projectPath)
     const filename = 'backlog.json'
     let existing: ConnectorTask[] = []
     try {

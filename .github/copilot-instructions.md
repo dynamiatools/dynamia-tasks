@@ -23,7 +23,7 @@ Dynamia Tasks is a **developer-first, local-only task manager** that runs as a p
 dynamia-tasks/
 ├── packages/
 │   ├── core/               # Shared TypeScript types, TaskConnector interface, TaskService, ConfigService
-│   ├── connector-local/    # Built-in: reads/writes .tasks/*.json
+│   ├── connector-local/    # Built-in: reads/writes .dynamia/tasks/*.json
 │   └── connector-github/   # Built-in: GitHub Issues REST API (client-side fetch, no octokit)
 └── apps/
     ├── web/                # Nuxt 3 SPA (static build only, no Nitro server routes)
@@ -57,7 +57,7 @@ The `ide-bridge` project is a **separate sibling git repository** (`../ide-bridg
 4. **All types come from `packages/core/src/types.ts`.** Do not duplicate type definitions anywhere.
 5. **All task operations go through `taskService`** (`packages/core/src/TaskService.ts`, exposed via `useTaskService()` in `apps/web/composables/useTaskService.ts`). The SPA registers connector instances directly in `apps/web/plugins/connectors.client.ts` — there is no server API to route through.
 6. **Local task IDs must use `"local-{uuid}"` format.** Always use `crypto.randomUUID()`.
-7. **Workspace items are references, never copies.** Only `{ connectorId, taskId, order, addedAt }` stored in `{projectRoot}/.dynamiatasks/workspace.json`.
+7. **Workspace items are references, never copies.** Only `{ connectorId, taskId, order, addedAt }` stored in `{projectRoot}/.dynamia/tasks/workspace.json`.
 8. **New connectors require zero changes** to `core`, `vscode`, or `intellij` — add a new `packages/connector-{name}/` package and register it in `apps/web/plugins/connectors.client.ts`.
 9. **`bridge.client.ts` must run before `connectors.client.ts`.** Nuxt plugins execute in alphabetical order (`b` < `c`), which is why the bridge init file is named that way — don't rename it without preserving the ordering.
 
@@ -168,14 +168,16 @@ ide.store (global scope, key "dynamiatasks.config.{platform}")
                                             # (only used if ide.store has nothing yet; then re-saved into ide.store)
 
 {projectRoot}/
-├── .dynamiatasks/workspace.json          # this project's workspace list (gitignored)
-└── .tasks/*.json                          # local connector task files (committable)
+└── .dynamia/tasks/
+    ├── *.json                             # local connector task files (committable); watched for external edits
+    ├── workspace.json                     # this project's workspace list (gitignored)
+    └── comments.json                      # local comments (gitignored)
 ```
 
 - Local task files are **plain JSON arrays** of `ConnectorTask`-compatible objects.
 - IDs must be globally unique: `"local-{uuid}"`.
-- Syntax errors in `.tasks/*.json` must not crash the app — `LocalConnector` skips the file and logs a warning (`console.warn`).
-- **Known stray directory:** a `.dynamia/tasks/workspace.json` may exist from an earlier naming scheme — current code never writes there. If you see it, it's leftover state, not something to preserve or extend.
+- Syntax errors in `.dynamia/tasks/*.json` must not crash the app — `LocalConnector` skips the file and logs a warning (`console.warn`).
+- Legacy `.tasks/*.json` and `.dynamiatasks/workspace.json` are copied into `.dynamia/tasks/` once (never overwriting, never deleting) by `migrateLegacyState`.
 
 ---
 
@@ -220,7 +222,7 @@ The token is persisted via `ide.secrets` (OS-keychain-backed: VS Code `SecretSto
 There is no automated test suite or CI in this repo (see `CLAUDE.md`). Before submitting a PR, manually verify:
 
 - [ ] Works with only `local` connector (no GitHub token)
-- [ ] Works with only `github` connector (no `.tasks/` folder)
+- [ ] Works with only `github` connector (no `.dynamia/tasks/` folder)
 - [ ] Both connectors active simultaneously in the same workspace
 - [ ] Capabilities gate UI correctly (`local` tasks show no Comments section)
 - [ ] Workspace handles gracefully a connector that is no longer configured
