@@ -28,7 +28,12 @@ class DynamiaTasksPanel(project: Project) {
             // ConfigService still reads the pre-1.0 global config from here (read-only migration).
             fsReadOnlyRoots = listOf(System.getProperty("user.home") + "/.dynamiatasks"),
             // LocalConnector.resolveAuthor(): author name for local comments.
-            allowedCommands = listOf(listOf("git", "config", "user.name")),
+            allowedCommands = listOf(
+                listOf("git", "config", "user.name"),
+                // Settings → MCP checks Node and the installed MCP server (see apps/web/composables/useMcpStatus.ts).
+                listOf("node", "--version"),
+                listOf("node", McpInstaller.installedFile.toString(), "--version"),
+            ),
         ),
     )
 }

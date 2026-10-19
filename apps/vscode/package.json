@@ -51,7 +51,13 @@
           "name": "Dynamia Tasks"
         }
       ]
-    }
+    },
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "dynamia-tasks.mcp",
+        "label": "Dynamia Tasks"
+      }
+    ]
   },
   "scripts": {
     "build": "node build.mjs",
@@ -71,5 +77,3 @@
     "typescript": "^5.4.5"
   }
 }
-
-

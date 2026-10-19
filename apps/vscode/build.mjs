@@ -46,6 +46,17 @@ if (fs.existsSync(spaPublicDir)) {
   console.warn('[build] WARNING: apps/web/.output/public not found — run `pnpm build:web` first.')
 }
 
+// ── copy bundled MCP server ───────────────────────────────────────────────────
+// Built by `pnpm --filter @dynamia-tasks/mcp bundle`; the extension installs it to ~/.dynamiatasks/mcp/.
+const mcpFile = path.resolve(__dirname, '../mcp/dist/dynamia-tasks-mcp.mjs')
+if (fs.existsSync(mcpFile)) {
+  fs.mkdirSync(path.resolve(__dirname, 'dist/mcp'), { recursive: true })
+  fs.copyFileSync(mcpFile, path.resolve(__dirname, 'dist/mcp/dynamia-tasks-mcp.mjs'))
+  console.log('[build] MCP server copied → dist/mcp/')
+} else {
+  console.warn('[build] WARNING: apps/mcp/dist/dynamia-tasks-mcp.mjs not found — run `pnpm build:mcp` first.')
+}
+
 function copyDirSync(src, dest) {
   fs.mkdirSync(dest, { recursive: true })
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
