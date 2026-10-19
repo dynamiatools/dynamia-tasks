@@ -38,7 +38,9 @@ pnpm build:vscode      # build web + esbuild + vsce package
 pnpm dev               # apps/web dev server only
 ```
 
-**`pnpm test` is broken as written** — root script is `pnpm -r test`, but no package in the workspace defines a `test` script; it will error or no-op. There is no test framework anywhere in the repo (no vitest/jest, no `.test.ts` files) and no lint tooling (no ESLint/Prettier config; `apps/vscode`'s `"lint"` script is actually `tsc --noEmit`, a type-check, not a lint pass). No CI workflow exists (`.github/` has only `copilot-instructions.md`, no `workflows/`). Don't assume tests or CI gate anything — they don't, today.
+`pnpm test` runs vitest in `packages/core`, `connector-local` and `connector-github` (tests live in each package's `test/`, outside `src/` so `tsc` does not emit them; they use `NodeBridge` on a temp dir or a stubbed `fetch`). There are no UI tests and no lint tooling (no ESLint/Prettier config; `apps/vscode`'s `"lint"` script is actually `tsc --noEmit`, a type-check). No CI workflow exists (`.github/` has only `copilot-instructions.md`, no `workflows/`), so nothing gates a merge automatically.
+
+The bridge is deny-by-default (see `../ide-bridge/CLAUDE.md`): `apps/vscode/src/extension.ts` and `DynamiaTasksPanel.kt` pass the only extras this plugin needs (read-only `~/.dynamiatasks`, the exact command `git config user.name`). Any new `ide.fs`/`ide.shell` use outside the project path must be added there.
 
 ## Secret storage
 

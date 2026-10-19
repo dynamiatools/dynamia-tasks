@@ -65,9 +65,14 @@ export class TaskService {
     for (const [id, connector] of this.registry) {
       const atRest = config.connectors[id]
       if (atRest === undefined) continue
-      const { merged, migrated, stripped } = await this.mergeSecrets(id, atRest as Record<string, unknown>)
-      if (migrated) await this.persistStrippedConfig(id, stripped)
-      await connector.configure(merged)
+      // One connector failing (e.g. keychain unavailable) must not stop the others from loading.
+      try {
+        const { merged, migrated, stripped } = await this.mergeSecrets(id, atRest as Record<string, unknown>)
+        if (migrated) await this.persistStrippedConfig(id, stripped)
+        await connector.configure(merged)
+      } catch (e) {
+        console.warn(`[dynamia-tasks] could not configure connector "${id}":`, (e as Error).message)
+      }
     }
   }
 

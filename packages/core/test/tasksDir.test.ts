@@ -59,3 +59,22 @@ describe('TaskService workspace file', () => {
     expect(ws.items).toHaveLength(1)
   })
 })
+
+describe('TaskService.init', () => {
+  const stub = (id: string, configure: (c: unknown) => Promise<void>) => ({
+    id, name: id, icon: '', capabilities: {} as never,
+    isConfigured: async () => true, configure, getConfigSchema: () => ({ fields: [] }),
+    fetchTasks: async () => [], getTask: async () => { throw new Error('n/a') },
+    updateTask: async () => { throw new Error('n/a') }, createTask: async () => { throw new Error('n/a') },
+  })
+
+  it('keeps configuring the other connectors when one throws', async () => {
+    const svc = new TaskService()
+    await svc.saveConfig({ connectors: { bad: { a: 1 }, good: { b: 2 } }, ui: { theme: 'dark', groupBy: 'module', defaultView: 'workspace' } })
+    const configured: string[] = []
+    svc.register(stub('bad', async () => { throw new Error('keychain unavailable') }))
+    svc.register(stub('good', async () => { configured.push('good') }))
+    await expect(svc.init()).resolves.toBeUndefined()
+    expect(configured).toEqual(['good'])
+  })
+})

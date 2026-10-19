@@ -88,30 +88,83 @@ export class GithubConnector implements TaskConnector {
     }
   }
 
-  private headers(): Record<string, string> {
-    return {
-      Authorization: `Bearer ${this.config.token}`,
-      'X-GitHub-Api-Version': '2022-11-28',
-      Accept: 'application/vnd.github+json',
-    }
-  }
-
-  private async gh<T>(path: string, options?: RequestInit): Promise<T> {
+  private async request<T>(token: string | undefined, path: string, options?: RequestInit): Promise<T> {
+    if (!token) throw Object.assign(new Error('GitHub token is not configured'), { code: 'UPSTREAM_AUTH_FAILED' })
     const res = await fetch(`https://api.github.com${path}`, {
       ...options,
-      headers: { ...this.headers(), ...(options?.headers ?? {}) },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'X-GitHub-Api-Version': '2022-11-28',
+        Accept: 'application/vnd.github+json',
+        ...(options?.headers ?? {}),
+      },
     })
     if (res.status === 401) throw Object.assign(new Error('GitHub auth failed'), { code: 'UPSTREAM_AUTH_FAILED' })
-    if (res.status === 403) throw Object.assign(new Error('GitHub rate limited'), { code: 'UPSTREAM_RATE_LIMITED' })
-    if (!res.ok) throw new Error(`GitHub API error: ${res.status} ${res.statusText}`)
+    if (res.status === 429 || (res.status === 403 && (res.headers.get('x-ratelimit-remaining') === '0' || res.headers.has('retry-after')))) {
+      throw Object.assign(new Error('GitHub rate limited'), { code: 'UPSTREAM_RATE_LIMITED' })
+    }
+    if (res.status === 403) {
+      throw Object.assign(new Error('GitHub denied access: check the token scopes and repository permissions'), { code: 'UPSTREAM_FORBIDDEN' })
+    }
+    if (!res.ok) {
+      let detail = ''
+      try {
+        const payload = await res.json() as { message?: string; errors?: Array<{ message?: string }> }
+        const messages = [payload?.message, ...(payload?.errors?.map(e => e.message).filter(Boolean) ?? [])].filter(Boolean)
+        if (messages.length) detail = ` - ${messages.join('; ')}`
+      } catch {
+        // Ignore non-JSON API errors and keep the generic status message.
+      }
+      const error = new Error(`GitHub API error: ${res.status}${detail || ` ${res.statusText}`}`)
+      throw res.status === 422 ? Object.assign(error, { code: 'UPSTREAM_VALIDATION_FAILED' }) : error
+    }
+    if (res.status === 204) return undefined as T
     return res.json() as Promise<T>
   }
 
+  private gh<T>(path: string, options?: RequestInit): Promise<T> {
+    return this.request<T>(this.config.token, path, options)
+  }
+
+  /** Runs `fn` over `items` with at most `limit` in flight, keeping result order. */
+  private async mapLimit<I, O>(items: I[], limit: number, fn: (item: I) => Promise<O>): Promise<O[]> {
+    const out = new Array<O>(items.length)
+    let next = 0
+    const worker = async () => {
+      while (next < items.length) {
+        const index = next++
+        out[index] = await fn(items[index])
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
+    return out
+  }
+
+  /** "owner/repo" → validated parts; they end up in URL paths, so reject anything unexpected. */
+  private parseRepo(full: string): { owner: string; repo: string } {
+    const match = /^(?!\.{1,2}\/)([\w.-]+)\/(?!\.{1,2}$)([\w.-]+)$/.exec(full ?? '')
+    if (!match) throw new Error(`Invalid repository "${full}": expected owner/repo`)
+    return { owner: match[1], repo: match[2] }
+  }
+
   // Parse "num@owner/repo" → { number, owner, repo }
+  /** Configured repos with a malformed entry skipped (and logged) instead of breaking every repo. */
+  private validConfiguredRepos(): { owner: string; repo: string }[] {
+    const out: { owner: string; repo: string }[] = []
+    for (const full of this.config.repos ?? []) {
+      try {
+        out.push(this.parseRepo(full))
+      } catch (e) {
+        console.warn(`[connector-github] ignoring configured repo: ${(e as Error).message}`)
+      }
+    }
+    return out
+  }
+
   private parseId(id: string): { number: number; owner: string; repo: string } {
-    const [numStr, full] = id.split('@')
-    const [owner, repo] = full.split('/')
-    return { number: parseInt(numStr, 10), owner, repo }
+    const [numStr, full] = (id ?? '').split('@')
+    if (!/^\d+$/.test(numStr ?? '') || !full) throw new Error(`Invalid GitHub task id "${id}": expected number@owner/repo`)
+    return { number: parseInt(numStr, 10), ...this.parseRepo(full) }
   }
 
   private toTask(issue: GhIssue, owner: string, repo: string): ConnectorTask {
@@ -160,16 +213,14 @@ export class GithubConnector implements TaskConnector {
     const perPage = filter?.perPage ?? 50
     const page = filter?.page ?? 1
 
-    const results: ConnectorTask[] = []
-    for (const { owner, repo } of repos) {
-      let url = `/repos/${owner}/${repo}/issues?state=${state}&per_page=${perPage}&page=${page}&pulls=false`
-      if (filter?.labels?.length) url += `&labels=${filter.labels.join(',')}`
-      if (filter?.query) url += `&q=${encodeURIComponent(filter.query)}`
-
+    const query = filter?.query?.trim().toLowerCase()
+    const perRepo = await this.mapLimit(repos, 4, async ({ owner, repo }) => {
+      const params = new URLSearchParams({ state, per_page: String(perPage), page: String(page) })
+      if (filter?.labels?.length) params.set('labels', filter.labels.join(','))
       try {
-        const issues = await this.gh<GhIssue[]>(url)
+        const issues = await this.gh<GhIssue[]>(`/repos/${owner}/${repo}/issues?${params}`)
         // GitHub issues endpoint returns PRs too — filter them out
-        results.push(...issues.filter(i => !(i as any).pull_request).map(i => this.toTask(i, owner, repo)))
+        return issues.filter(i => !(i as any).pull_request).map(i => this.toTask(i, owner, repo))
       } catch (e) {
         const message = (e as Error).message
         // If the explorer requested a single source, surface the error instead of returning a misleading empty list.
@@ -179,9 +230,14 @@ export class GithubConnector implements TaskConnector {
           )
         }
         console.warn(`[connector-github] fetchTasks failed for ${owner}/${repo}:`, message)
+        return []
       }
-    }
-    return results
+    })
+    const results = perRepo.flat()
+    // The issues endpoint has no text search (that is the search API), so filter here.
+    return query
+      ? results.filter(t => t.title.toLowerCase().includes(query) || t.description?.toLowerCase().includes(query))
+      : results
   }
 
   async getTask(id: string): Promise<ConnectorTask> {
@@ -194,7 +250,7 @@ export class GithubConnector implements TaskConnector {
     // Requires sourceId (owner/repo) passed from the UI
     const sourceId = newTask.sourceId as string | undefined
     if (!sourceId) throw new Error('createTask requires sourceId (owner/repo)')
-    const [owner, repo] = sourceId.split('/')
+    const { owner, repo } = this.parseRepo(sourceId)
 
     const body: Record<string, unknown> = { title: newTask.title, body: newTask.description }
     if (newTask.labels?.length) body.labels = newTask.labels
@@ -281,7 +337,7 @@ export class GithubConnector implements TaskConnector {
 
   async fetchLabels(sourceId?: string): Promise<TaskLabel[]> {
     if (!sourceId) return []
-    const [owner, repo] = sourceId.split('/')
+    const { owner, repo } = this.parseRepo(sourceId)
     const ghLabels = await this.gh<{ id: number; name: string; color: string }[]>(
       `/repos/${owner}/${repo}/labels?per_page=100`
     )
@@ -292,43 +348,14 @@ export class GithubConnector implements TaskConnector {
     if (!this.config.token) return []
     // If the user has selected specific repos, return only those
     if (this.config.repos?.length) {
-      return this.config.repos.map(full => {
-        const [owner, name] = full.split('/')
-        return { id: full, name, group: owner }
-      })
+      return this.validConfiguredRepos().map(({ owner, repo }) => ({ id: `${owner}/${repo}`, name: repo, group: owner }))
     }
     return this.fetchSourcesWithToken(this.config.token)
   }
 
   /** Fetch repos/sources using an arbitrary token — used by the settings UI before saving */
   async fetchSourcesWithToken(token: string, orgs: string[] = []): Promise<ConnectorSource[]> {
-    const ghWithToken = async <T>(path: string): Promise<T> => {
-      const res = await fetch(`https://api.github.com${path}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'X-GitHub-Api-Version': '2022-11-28',
-          Accept: 'application/vnd.github+json',
-        },
-      })
-      if (res.status === 401) throw Object.assign(new Error('GitHub auth failed'), { code: 'UPSTREAM_AUTH_FAILED' })
-      if (res.status === 403) throw Object.assign(new Error('GitHub rate limited'), { code: 'UPSTREAM_RATE_LIMITED' })
-      if (!res.ok) {
-        let detail = ''
-        try {
-          const payload = await res.json() as { message?: string; errors?: Array<{ message?: string }> }
-          const messages = [payload?.message, ...(payload?.errors?.map(e => e.message).filter(Boolean) ?? [])]
-          if (messages.length) detail = ` - ${messages.join('; ')}`
-        } catch {
-          // Ignore non-JSON API errors and keep the generic status message.
-        }
-        const error = new Error(`GitHub API error: ${res.status}${detail}`)
-        if (res.status === 422) {
-          throw Object.assign(error, { code: 'UPSTREAM_VALIDATION_FAILED' })
-        }
-        throw error
-      }
-      return res.json() as Promise<T>
-    }
+    const ghWithToken = <T>(path: string): Promise<T> => this.request<T>(token, path)
 
     const fetchAllPages = async (baseUrl: string): Promise<GhRepo[]> => {
       const all: GhRepo[] = []
@@ -365,7 +392,7 @@ export class GithubConnector implements TaskConnector {
     if (orgs.length > 0) {
       for (const org of orgs) {
         try {
-          const repos = await fetchAllPages(`/orgs/${org}/repos?sort=updated`)
+          const repos = await fetchAllPages(`/orgs/${encodeURIComponent(org)}/repos?sort=updated`)
           repos.forEach(r => sources.push({ id: r.full_name, name: r.name, group: org }))
         } catch {
           console.warn(`[connector-github] fetchSourcesWithToken failed for org ${org}`)
@@ -385,16 +412,10 @@ export class GithubConnector implements TaskConnector {
 
   private async resolveRepos(): Promise<{ owner: string; repo: string }[]> {
     if (this.config.repos?.length) {
-      return this.config.repos.map(full => {
-        const [owner, repo] = full.split('/')
-        return { owner, repo }
-      })
+      return this.validConfiguredRepos()
     }
     const sources = await this.fetchSources()
-    return sources.map(s => {
-      const [owner, repo] = s.id.split('/')
-      return { owner, repo }
-    })
+    return sources.map(s => this.parseRepo(s.id))
   }
 }
 

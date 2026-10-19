@@ -98,6 +98,9 @@ importers:
       typescript:
         specifier: ^5.4.5
         version: 5.9.3
+      vitest:
+        specifier: ^3.2.7
+        version: 3.2.7(@types/node@25.6.0)(jiti@2.6.1)(terser@5.46.1)(yaml@2.8.3)
 
   packages/connector-local:
     dependencies:
