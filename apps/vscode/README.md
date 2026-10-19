@@ -59,7 +59,7 @@ Your token is stored locally and never leaves your machine.
   pnpm install
   pnpm --filter "./packages/*" build   # compiles core + connectors into dist/ (the web build needs them)
   pnpm build                           # nuxt generate → apps/web/.output/public
-  pnpm --filter dynamia-tasks build    # bundles the extension and copies the SPA to dist/web
+  pnpm --filter ./apps/vscode build    # bundles the extension and copies the SPA to dist/web
   ```
 - Then open `apps/vscode` in VS Code and press F5 (**Run Extension**).
 - Re-run the relevant build step after changing `packages/*` or `apps/web`.
