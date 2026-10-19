@@ -3,6 +3,9 @@ export default defineNuxtConfig({
   ssr: false,
   compatibilityDate: '2026-04-21',
   devtools: { enabled: false },
+  // The VS Code host rewrites src/href attributes only; the import map's absolute "/_nuxt/..." URLs
+  // would stay unrewritten and the entry chunk would not load (black panel).
+  experimental: { entryImportMap: false },
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
   // Register all components by filename only, regardless of subdirectory depth
   components: [{ path: '~/components', pathPrefix: false }],

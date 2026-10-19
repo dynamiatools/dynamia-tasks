@@ -3,8 +3,8 @@ import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    id("org.jetbrains.kotlin.jvm")          version "2.1.20"
-    id("org.jetbrains.intellij.platform")   version "2.3.0"
+    id("org.jetbrains.kotlin.jvm")          version "2.4.0"
+    id("org.jetbrains.intellij.platform")   version "2.19.0"
 }
 
 group   = providers.gradleProperty("pluginGroup").get()
@@ -61,7 +61,7 @@ intellijPlatform {
         name = providers.gradleProperty("pluginName")
         version = providers.gradleProperty("pluginVersion")
         ideaVersion {
-            sinceBuild = "251"        // 2025.1 minimum
+            sinceBuild = "261"        // 2026.1 minimum
             untilBuild = provider { null } // no upper bound → compatible with all future versions
         }
     }
@@ -79,12 +79,8 @@ intellijPlatform {
 
     pluginVerification {
         ides {
-            // recommended() and any pin newer than 2025.1 currently fail to resolve —
-            // intellij-platform-gradle-plugin 2.3.0 (Feb 2025) predates every IDE release
-            // since 2025.1 and can't look them up. Needs a plugin-version bump first
-            // (see conversation) before verifying against 2025.3+ / whatever ships after it.
-            ide(IntelliJPlatformType.IntellijIdeaCommunity, "2025.1")
-            ide(IntelliJPlatformType.IntellijIdeaUltimate, "2026.2")
+            create(IntelliJPlatformType.IntellijIdea, "2026.1")
+            create(IntelliJPlatformType.IntellijIdea, "2026.2")
         }
     }
 }

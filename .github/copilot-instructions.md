@@ -197,7 +197,7 @@ ide.store (global scope, key "dynamiatasks.config.{platform}")
 ## IntelliJ Plugin (apps/intellij)
 
 - Language: **Kotlin**, build system: **Gradle** with IntelliJ Platform Gradle Plugin.
-- Min IDE version: `2025.1` (build `251`).
+- Min IDE version: `2026.1` (build `261`).
 - **No server, no child process.** `DynamiaTasksStartupListener.kt` runs on project open; `DynamiaTasksWindowFactory.kt`/`DynamiaTasksPanel.kt` host a JCEF panel that loads the bundled static SPA directly from plugin resources via `ide-bridge-intellij`.
 - Bridge (fs/store/clipboard/shell/theme) comes from the external `tools.dynamia:ide-bridge-intellij` Maven artifact, not from anything in this repo.
 

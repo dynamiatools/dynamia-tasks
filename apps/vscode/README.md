@@ -52,6 +52,21 @@ Your token is stored locally and never leaves your machine.
 
 ---
 
+## Local Development Notes
+
+- The extension bundles the Nuxt SPA from `apps/web`. Build it **before** launching, or the panel stays blank (`build.mjs` only warns when `apps/web/.output/public` is missing). From the repo root:
+  ```bash
+  pnpm install
+  pnpm --filter "./packages/*" build   # compiles core + connectors into dist/ (the web build needs them)
+  pnpm build                           # nuxt generate → apps/web/.output/public
+  pnpm --filter ./apps/vscode build    # bundles the extension and copies the SPA to dist/web
+  ```
+- Then open `apps/vscode` in VS Code and press F5 (**Run Extension**).
+- Re-run the relevant build step after changing `packages/*` or `apps/web`.
+- `ide-bridge` must be checked out as a sibling repo (`../ide-bridge`).
+
+---
+
 ## Privacy
 
 - ✅ No cloud backend
