@@ -25,10 +25,10 @@ The server starts from the first argument, then `DYNAMIA_TASKS_PROJECT`, then th
 
 | Tool | What it does |
 | --- | --- |
-| `list_tasks` | Summaries; filter by `status` (default `open`), `query`, `labels` |
+| `list_tasks` | Summaries; filter by `status` (default `open`), `query`, `labels`, `priority` |
 | `get_task` | One task in full, with its comments |
-| `create_task` | New task in `backlog.json` |
-| `update_task` | Change fields; `done: true` completes it |
+| `create_task` | New task in `backlog.json` (title, description, module, labels, priority); also added to the workspace list |
+| `update_task` | Change title, description, `done`, module, `priority` (`null` clears it) and labels (`labels` replaces, `addLabels`/`removeLabels` adjust; new names are created) |
 | `delete_task` | Remove a task |
 | `add_comment` | Markdown comment on a task |
 | `list_labels` | Labels in use |

@@ -97,4 +97,40 @@ describe('dynamia-tasks MCP', () => {
     expect(c.getServerCapabilities()?.tools).toBeUndefined()
     expect(c.getInstructions()).toBe(NOT_ACTIVE_MESSAGE)
   })
+
+  it('create_task puts the task in the workspace', async () => {
+    const { id } = (await call('create_task', { title: 'ws' })).json()
+    const ws = JSON.parse(readFileSync(join(root, '.dynamia', 'tasks', 'workspace.json'), 'utf8'))
+    expect(ws.items.map((i: { connectorId: string; taskId: string }) => [i.connectorId, i.taskId])).toEqual([['local', id]])
+  })
+
+  it('update_task edits title, description, done and priority, and can clear the priority', async () => {
+    const { id } = (await call('create_task', { title: 'old', priority: 'low' })).json()
+    const t = (await call('update_task', { id, title: 'new', description: 'details', done: true, priority: 'high' })).json()
+    expect([t.title, t.description, t.done, t.priority]).toEqual(['new', 'details', true, 'high'])
+    expect((await call('update_task', { id, priority: null })).json().priority).toBeUndefined()
+    expect((await call('update_task', { id, done: false })).json().done).toBe(false)
+  })
+
+  it('addLabels / removeLabels change some labels and keep the rest', async () => {
+    const { id } = (await call('create_task', { title: 'l', labels: ['a', 'b'] })).json()
+    const names = async (args: Record<string, unknown>) =>
+      (await call('update_task', { id, ...args })).json().labels.map((l: { name: string }) => l.name)
+    expect(await names({ addLabels: ['c', 'a'] })).toEqual(['a', 'b', 'c'])
+    expect(await names({ removeLabels: ['b'] })).toEqual(['a', 'c'])
+    expect(await names({ labels: ['z'] })).toEqual(['z'])
+    expect((await call('list_labels')).json().map((l: { name: string }) => l.name)).toContain('z')
+  })
+
+  it('list_tasks filters by label and by priority', async () => {
+    await call('create_task', { title: 'x', labels: ['bug'], priority: 'high' })
+    await call('create_task', { title: 'y', labels: ['bug'], priority: 'low' })
+    await call('create_task', { title: 'z', labels: ['ui'] })
+    const titles = async (args: Record<string, unknown>) =>
+      (await call('list_tasks', args)).json().map((t: { title: string }) => t.title)
+    expect(await titles({ labels: ['bug'] })).toEqual(['x', 'y'])
+    expect(await titles({ priority: ['high'] })).toEqual(['x'])
+    expect(await titles({ labels: ['bug'], priority: ['low', 'high'] })).toEqual(['x', 'y'])
+    expect(await titles({ priority: ['medium'] })).toEqual([])
+  })
 })
