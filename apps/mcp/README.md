@@ -13,7 +13,13 @@ pnpm build:packages && pnpm --filter @dynamia-tasks/mcp build
 claude mcp add dynamia-tasks -- node /path/to/dynamia-tasks/apps/mcp/dist/index.js /path/to/project
 ```
 
-The project root is the first argument, then `DYNAMIA_TASKS_PROJECT`, then the current directory.
+Register it once with `--scope user` and no project path to use it everywhere:
+
+```bash
+claude mcp add --scope user dynamia-tasks -- node ~/.dynamiatasks/mcp/dynamia-tasks-mcp.mjs
+```
+
+The server starts from the first argument, then `DYNAMIA_TASKS_PROJECT`, then the current directory, and uses the nearest folder (that one or a parent) with `.dynamia/tasks/`. If there is none it is inert: no tools, and its instructions say Dynamia Tasks is not installed or active there.
 
 ## Tools (`mcp__dynamia-tasks__*`)
 

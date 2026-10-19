@@ -20,9 +20,12 @@ export function useMcpStatus() {
   const installed = ref<McpCheck>(idle())
   const node = ref<McpCheck>(idle())
   const server = ref<McpCheck>(idle())
+  const active = ref<McpCheck>(idle())
 
   const quote = (s: string) => `"${s.replace(/"/g, '\\"')}"`
-  const claudeCommand = computed(() => `claude mcp add dynamia-tasks -- node ${quote(file.value)} ${quote(project.value)}`)
+  // User scope and no project path: the server uses the folder Claude Code runs in and stays inert
+  // where there is no .dynamia/tasks/, so one registration serves every project.
+  const claudeCommand = computed(() => `claude mcp add --scope user dynamia-tasks -- node ${quote(file.value)}`)
   const jsonConfig = computed(() => JSON.stringify({
     mcpServers: { 'dynamia-tasks': { command: 'node', args: [file.value, project.value] } },
   }, null, 2))
@@ -39,7 +42,12 @@ export function useMcpStatus() {
   async function check() {
     file.value = ide.path.join(ide.env.getHomePath(), '.dynamiatasks', 'mcp', 'dynamia-tasks-mcp.mjs')
     project.value = ide.env.getProjectPath()
-    installed.value = node.value = server.value = { state: 'checking', detail: '' }
+    installed.value = node.value = server.value = active.value = { state: 'checking', detail: '' }
+
+    const tasksDir = ide.path.join(project.value, '.dynamia', 'tasks')
+    active.value = (await ide.fs.exists(tasksDir).catch(() => false))
+      ? { state: 'ok', detail: tasksDir }
+      : { state: 'fail', detail: 'No .dynamia/tasks/ in this project yet, so the MCP stays inactive here. Create a task from the plugin first.' }
 
     const exists = await ide.fs.exists(file.value).catch(() => false)
     installed.value = exists
@@ -66,5 +74,5 @@ export function useMcpStatus() {
     await ide.ui.notify('info', `${what} copied to the clipboard`)
   }
 
-  return { file, project, installed, node, server, claudeCommand, jsonConfig, check, copy }
+  return { file, project, installed, node, server, active, claudeCommand, jsonConfig, check, copy }
 }

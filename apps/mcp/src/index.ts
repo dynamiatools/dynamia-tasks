@@ -2,7 +2,7 @@
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { initBridge } from '@dynamia-tools/ide-bridge'
 import { NodeBridge } from '@dynamia-tools/ide-bridge/node'
-import { resolve } from 'node:path'
+import { findProjectRoot } from './project.js'
 import { createServer } from './server.js'
 import { VERSION } from './version.js'
 
@@ -12,8 +12,10 @@ if (process.argv.includes('--version')) {
   process.exit(0)
 }
 
-// Project root: first argument, then DYNAMIA_TASKS_PROJECT, then the directory the client launched us in.
-const projectPath = resolve(process.argv.slice(2).find(a => !a.startsWith('--')) ?? process.env.DYNAMIA_TASKS_PROJECT ?? process.cwd())
+// Project root: first argument, then DYNAMIA_TASKS_PROJECT, then the directory the client launched us in;
+// in every case the nearest folder with .dynamia/tasks/ is used, and without one the server does nothing.
+const start = process.argv.slice(2).find(a => !a.startsWith('--')) ?? process.env.DYNAMIA_TASKS_PROJECT ?? process.cwd()
+const projectPath = findProjectRoot(start)
 
-initBridge(new NodeBridge({ projectPath }))
+if (projectPath) initBridge(new NodeBridge({ projectPath }))
 await createServer(projectPath).connect(new StdioServerTransport())

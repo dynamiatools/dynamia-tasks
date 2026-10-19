@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { LocalConnector } from '@dynamia-tasks/connector-local'
 import { taskService } from '@dynamia-tasks/core'
 import type { ConnectorTask } from '@dynamia-tasks/core'
+import { NOT_ACTIVE_MESSAGE } from './project.js'
 import { VERSION } from './version.js'
 
 const priority = z.enum(['high', 'medium', 'low'])
@@ -29,8 +30,14 @@ const summary = (t: ConnectorTask) => ({
   labels: t.labels?.map(l => l.name),
 })
 
-/** Builds the server; the caller owns the transport. Expects the ide-bridge to be initialised. */
-export function createServer(projectPath: string): McpServer {
+/**
+ * Builds the server; the caller owns the transport. Expects the ide-bridge to be initialised.
+ * Without a project (no .dynamia/tasks/) it exposes no tools and only says Dynamia Tasks is not active.
+ */
+export function createServer(projectPath: string | null): McpServer {
+  if (!projectPath) {
+    return new McpServer({ name: 'dynamia-tasks', version: VERSION }, { instructions: NOT_ACTIVE_MESSAGE })
+  }
   const local = new LocalConnector(projectPath)
   const server = new McpServer({ name: 'dynamia-tasks', version: VERSION })
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ide } from '@dynamia-tools/ide-bridge'
 
-const { file, installed, node, server, claudeCommand, jsonConfig, check, copy } = useMcpStatus()
+const { file, installed, node, server, active, claudeCommand, jsonConfig, check, copy } = useMcpStatus()
 const tab = ref<'claude' | 'vscode' | 'intellij'>('claude')
 const tabs = [
   { id: 'claude', label: 'Claude Code' },
@@ -13,6 +13,7 @@ const rows = computed(() => [
   { label: 'Server file', check: installed.value },
   { label: 'Node.js', check: node.value },
   { label: 'Server starts', check: server.value },
+  { label: 'This project has .dynamia/tasks/', check: active.value },
 ])
 
 onMounted(() => {
@@ -66,7 +67,7 @@ onMounted(() => {
     </div>
 
     <div v-if="tab === 'claude'" class="space-y-2 text-xs text-dt-muted">
-      <p>Run this once in a terminal, from your project:</p>
+      <p>Run this once, from any folder. It is global: the server works in every project that has a <code>.dynamia/tasks/</code> folder (also when Claude Code is opened in a subfolder) and does nothing elsewhere, where it only says the folder has no Dynamia Tasks support and where to install it.</p>
       <pre class="p-2 rounded border border-dt-border text-dt-text whitespace-pre-wrap break-all">{{ claudeCommand }}</pre>
       <button type="button" class="px-2 py-1 rounded border border-dt-border hover:border-dt-accent hover:text-white" @click="copy(claudeCommand, 'Command')">Copy command</button>
     </div>
@@ -80,7 +81,7 @@ onMounted(() => {
       <p>IntelliJ does not register MCP servers from a plugin, so add it once by hand:</p>
       <ol class="list-decimal pl-5 space-y-1">
         <li>Make sure the checks above are OK (needs Node.js 20+ visible to the IDE; if you started the IDE from the dock or a launcher, start it from a terminal once so it sees your PATH).</li>
-        <li>Open <em>Settings → Tools → AI Assistant → Model Context Protocol (MCP)</em> (or the MCP settings of Junie) and add a server, pasting this JSON. Menu names change between IDE versions.</li>
+        <li>Open <em>Settings → Tools → AI Assistant → Model Context Protocol (MCP)</em> (or the MCP settings of Junie) and add a server, pasting this JSON. It names this project because the IDE may not launch the server inside it. Menu names change between IDE versions.</li>
         <li>Save and check that the server shows as running. Its tools appear as <code>dynamia-tasks</code>.</li>
       </ol>
       <pre class="p-2 rounded border border-dt-border text-dt-text whitespace-pre-wrap break-all">{{ jsonConfig }}</pre>

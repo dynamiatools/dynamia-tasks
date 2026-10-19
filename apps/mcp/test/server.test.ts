@@ -2,11 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { readFileSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { initBridge } from '@dynamia-tools/ide-bridge'
 import { NodeBridge } from '@dynamia-tools/ide-bridge/node'
+import { findProjectRoot, NOT_ACTIVE_MESSAGE } from '../src/project.js'
 import { createServer } from '../src/server.js'
 
 let root: string
@@ -14,6 +15,7 @@ let client: Client
 
 beforeEach(async () => {
   root = mkdtempSync(join(tmpdir(), 'dynamia-mcp-'))
+  mkdirSync(join(root, '.dynamia', 'tasks'), { recursive: true })
   initBridge(new NodeBridge({ projectPath: root }))
   const [a, b] = InMemoryTransport.createLinkedPair()
   await createServer(root).connect(a)
@@ -77,5 +79,22 @@ describe('dynamia-tasks MCP', () => {
   it('rejects a malformed repo', async () => {
     const res = await client.callTool({ name: 'add_github_issue_to_workspace', arguments: { repo: 'nope', number: 1 } })
     expect(res.isError).toBe(true)
+  })
+
+  it('finds the project root from a subfolder, and nothing outside a project', () => {
+    const sub = join(root, 'src', 'deep')
+    mkdirSync(sub, { recursive: true })
+    expect(findProjectRoot(sub)).toBe(root)
+    const bare = mkdtempSync(join(tmpdir(), 'dynamia-bare-'))
+    try { expect(findProjectRoot(bare)).toBeNull() } finally { rmSync(bare, { recursive: true, force: true }) }
+  })
+
+  it('is inert without a project: no tools, says Dynamia Tasks is not active', async () => {
+    const [a, b] = InMemoryTransport.createLinkedPair()
+    await createServer(null).connect(a)
+    const c = new Client({ name: 'test', version: '0' })
+    await c.connect(b)
+    expect(c.getServerCapabilities()?.tools).toBeUndefined()
+    expect(c.getInstructions()).toBe(NOT_ACTIVE_MESSAGE)
   })
 })
