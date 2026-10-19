@@ -60,8 +60,8 @@
         </ul>
     ]]></change-notes>
 
-    <!-- Compatible with IntelliJ-based IDEs 2025.1+ (no upper bound) -->
-    <idea-version since-build="251" until-build=""/>
+    <!-- Compatible with IntelliJ-based IDEs 2026.1+ (no upper bound) -->
+    <idea-version since-build="261" until-build=""/>
 
     <depends>com.intellij.modules.platform</depends>
     <!-- From 2026.2 onward JCEF is a separate plugin (com.intellij.modules.jcef); without
